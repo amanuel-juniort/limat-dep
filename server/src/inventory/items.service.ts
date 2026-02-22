@@ -9,6 +9,12 @@ export class ItemsService {
   async create(data: Prisma.ItemsCreateInput & { initialQuantity?: number }): Promise<Items> {
     const { initialQuantity, ...itemData } = data;
 
+    // Auto-generate short SKU if not provided
+    if (!itemData.sku || itemData.sku.trim() === '') {
+      const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+      itemData.sku = `SKU-${randomPart}`;
+    }
+
     try {
       return await this.prisma.$transaction(async (tx) => {
         const item = await tx.items.create({
@@ -81,6 +87,12 @@ export class ItemsService {
   }
 
   async update(id: number, data: Prisma.ItemsUpdateInput): Promise<Items> {
+    // Auto-generate short SKU if cleared
+    if (data.sku !== undefined && (!data.sku || (typeof data.sku === 'string' && data.sku.trim() === ''))) {
+      const randomPart = Math.random().toString(36).substring(2, 6).toUpperCase();
+      data.sku = `SKU-${randomPart}`;
+    }
+
     try {
       return await this.prisma.items.update({
         where: { id },

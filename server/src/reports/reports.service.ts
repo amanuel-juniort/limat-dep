@@ -41,6 +41,32 @@ export class ReportsService {
     const totalTips = transactions.reduce((sum, t) => sum + Number(t.tipAmount || 0), 0);
     const totalRevenue = salesRevenue + spinRevenue;
 
+    // Payment method breakdown
+    const paymentBreakdown = {
+      CASH: transactions
+        .filter((t) => t.paymentMethod === 'CASH')
+        .reduce((sum, t) => sum + Number(t.totalAmount || 0), 0),
+      TELEBIRR: transactions
+        .filter((t) => t.paymentMethod === 'TELEBIRR')
+        .reduce((sum, t) => sum + Number(t.totalAmount || 0), 0),
+      CBE: transactions
+        .filter((t) => t.paymentMethod === 'CBE')
+        .reduce((sum, t) => sum + Number(t.totalAmount || 0), 0),
+    };
+
+    // Tip breakdown
+    const tipBreakdown = {
+      CASH: transactions
+        .filter((t) => t.paymentMethod === 'CASH')
+        .reduce((sum, t) => sum + Number(t.tipAmount || 0), 0),
+      TELEBIRR: transactions
+        .filter((t) => t.paymentMethod === 'TELEBIRR')
+        .reduce((sum, t) => sum + Number(t.tipAmount || 0), 0),
+      CBE: transactions
+        .filter((t) => t.paymentMethod === 'CBE')
+        .reduce((sum, t) => sum + Number(t.tipAmount || 0), 0),
+    };
+
     // Gross Profit calculation using Average Cost
     let totalCOGS = 0;
     const saleItems = await this.prisma.transactionItems.findMany({
@@ -50,12 +76,16 @@ export class ReportsService {
           type: TransactionType.SALE,
         },
       },
-      select: {
-        itemId: true,
-        quantity: true,
+      include: {
+        item: {
+          select: { name: true }
+        }
       }
     });
 
+    // Item breakdown for reconciliation
+    const itemMap = new Map<number, { name: string; quantity: number; revenue: number }>();
+    
     // Cache average costs to avoid repetitive DB hits
     const costCache = new Map<number, number>();
     for (const item of saleItems) {
@@ -63,7 +93,19 @@ export class ReportsService {
         costCache.set(item.itemId, await this.purchasesService.calculateAverageCost(item.itemId));
       }
       totalCOGS += (costCache.get(item.itemId) || 0) * item.quantity;
+
+      // Aggregating for itemBreakdown
+      const existing = itemMap.get(item.itemId) || { name: item.item.name, quantity: 0, revenue: 0 };
+      existing.quantity += item.quantity;
+      existing.revenue += Number(item.subtotal);
+      itemMap.set(item.itemId, existing);
     }
+
+    const itemBreakdown = Array.from(itemMap.entries()).map(([itemId, data]) => ({
+      itemId,
+      ...data,
+      revenue: Number(data.revenue.toFixed(2))
+    }));
 
     // Spin rewards cost (marketing cost)
     const spinRewards = await this.prisma.inventoryMovements.findMany({
@@ -92,6 +134,17 @@ export class ReportsService {
       grossProfit: Number((totalRevenue - totalCOGS - marketingCost).toFixed(2)),
       totalCOGS: Number(totalCOGS.toFixed(2)),
       marketingCost: Number(marketingCost.toFixed(2)),
+      paymentBreakdown: {
+        CASH: Number(paymentBreakdown.CASH.toFixed(2)),
+        TELEBIRR: Number(paymentBreakdown.TELEBIRR.toFixed(2)),
+        CBE: Number(paymentBreakdown.CBE.toFixed(2)),
+      },
+      tipBreakdown: {
+        CASH: Number(tipBreakdown.CASH.toFixed(2)),
+        TELEBIRR: Number(tipBreakdown.TELEBIRR.toFixed(2)),
+        CBE: Number(tipBreakdown.CBE.toFixed(2)),
+      },
+      itemBreakdown,
     };
   }
 

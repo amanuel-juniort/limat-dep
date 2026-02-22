@@ -36,6 +36,7 @@ import { useAuth } from "@/context/AuthContext";
 interface Item {
   id: string | number;
   name: string;
+  sku: string;
   price: number;
   stock: number;
   category?: string;
@@ -97,6 +98,8 @@ export default function PosPage() {
       // Map backend structure to local Item type
       const formatted = response.data.map((i: any) => ({
         ...i,
+        name: i.name,
+        sku: i.sku || "",
         price: Number(i.prices?.[0]?.price || 0),
         stock: Number(i.totalStock || 0),
         category: "General",
@@ -117,6 +120,7 @@ export default function PosPage() {
     (item) =>
       item.stock > 0 &&
       (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
         (item.category &&
           item.category.toLowerCase().includes(searchQuery.toLowerCase()))),
   );

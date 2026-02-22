@@ -19,6 +19,7 @@ import {
   Package,
   DollarSign,
   Gift,
+  X,
 } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,22 @@ interface DailySummary {
   grossProfit: number;
   totalCOGS: number;
   marketingCost: number;
+  paymentBreakdown: {
+    CASH: number;
+    TELEBIRR: number;
+    CBE: number;
+  };
+  tipBreakdown: {
+    CASH: number;
+    TELEBIRR: number;
+    CBE: number;
+  };
+  itemBreakdown: Array<{
+    itemId: number;
+    name: string;
+    quantity: number;
+    revenue: number;
+  }>;
 }
 
 export default function ReportsPage() {
@@ -43,6 +60,7 @@ export default function ReportsPage() {
   const [selectedDate, setSelectedDate] = useState(
     new Date().toISOString().split("T")[0],
   );
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -72,7 +90,8 @@ export default function ReportsPage() {
     }).format(value);
 
   const handlePrint = () => {
-    window.print();
+    setIsPreviewOpen(false);
+    setTimeout(() => window.print(), 100);
   };
 
   const adjustDate = (days: number) => {
@@ -133,10 +152,13 @@ export default function ReportsPage() {
               </button>
             </div>
             <button
-              onClick={handlePrint}
-              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 dark:shadow-none dark:bg-indigo-600"
+              onClick={() => setIsPreviewOpen(true)}
+              className="flex items-center gap-2 px-6 rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 dark:shadow-none dark:bg-indigo-600 h-12"
             >
-              <Printer className="h-5 w-5" />
+              <Printer className="h-4 w-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">
+                Reconcile
+              </span>
             </button>
           </div>
         </header>
@@ -174,7 +196,6 @@ export default function ReportsPage() {
                   <span>Gross Profit: {formatMoney(summary.grossProfit)}</span>
                 </div>
               </div>
-              <BarChart3 className="absolute -bottom-6 -right-6 h-32 w-32 opacity-10 print:hidden" />
             </div>
 
             {/* Grid Stats */}
@@ -367,6 +388,297 @@ export default function ReportsPage() {
           </div>
         )}
       </div>
+
+      {/* Reconcile Preview Modal */}
+      {isPreviewOpen && summary && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-300 print:hidden">
+          <div className="w-full max-w-lg rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl animate-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
+            <div className="mb-6 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                  Reconcile Preview
+                </h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Daily Closing · {new Date(selectedDate).toLocaleDateString()}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                className="rounded-full bg-slate-50 p-2 text-slate-400 hover:bg-slate-100 dark:bg-slate-800 dark:hover:bg-slate-700"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-8">
+              {/* Payment Method Totals */}
+              <section>
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-4 ml-1">
+                  Payment Collection
+                </h4>
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="flex justify-between items-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
+                      Cash Received
+                    </span>
+                    <span className="text-lg font-black tabular-nums">
+                      {formatMoney(summary.paymentBreakdown.CASH)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-900/10">
+                    <span className="text-sm font-bold text-indigo-600">
+                      Telebirr Total
+                    </span>
+                    <span className="text-lg font-black text-indigo-600 tabular-nums">
+                      {formatMoney(summary.paymentBreakdown.TELEBIRR)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50">
+                    <span className="text-sm font-bold text-slate-600 dark:text-slate-400">
+                      CBE Total
+                    </span>
+                    <span className="text-lg font-black tabular-nums">
+                      {formatMoney(summary.paymentBreakdown.CBE)}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Tips Section */}
+              <section>
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 mb-4 ml-1">
+                  Tip Breakdown
+                </h4>
+                <div className="grid grid-cols-1 gap-2">
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/5 border border-emerald-100 dark:border-none">
+                    <span className="text-xs font-bold text-emerald-600/80">
+                      Cash Tips
+                    </span>
+                    <span className="text-base font-black tabular-nums text-emerald-600">
+                      {formatMoney(summary.tipBreakdown.CASH)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/5 border border-emerald-100 dark:border-none">
+                    <span className="text-xs font-bold text-emerald-600/80">
+                      Telebirr Tips
+                    </span>
+                    <span className="text-base font-black tabular-nums text-emerald-600">
+                      {formatMoney(summary.tipBreakdown.TELEBIRR)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-3 rounded-xl bg-emerald-50/50 dark:bg-emerald-900/5 border border-emerald-100 dark:border-none">
+                    <span className="text-xs font-bold text-emerald-600/80">
+                      CBE Tips
+                    </span>
+                    <span className="text-base font-black tabular-nums text-emerald-600">
+                      {formatMoney(summary.tipBreakdown.CBE)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 rounded-2xl bg-emerald-600 text-white mt-2 shadow-lg shadow-emerald-100 dark:shadow-none">
+                    <span className="text-sm font-black uppercase tracking-widest">
+                      Total Tips
+                    </span>
+                    <span className="text-xl font-black tabular-nums">
+                      {formatMoney(summary.totalTips)}
+                    </span>
+                  </div>
+                </div>
+              </section>
+
+              {/* Sold Items List */}
+              <section>
+                <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600 mb-4 ml-1">
+                  Product Breakdown
+                </h4>
+                <div className="rounded-2xl border border-slate-100 dark:border-slate-800 overflow-hidden">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 dark:bg-slate-800/50">
+                      <tr>
+                        <th className="px-5 py-4 font-black uppercase tracking-widest text-slate-400">
+                          Item
+                        </th>
+                        <th className="px-5 py-4 font-black uppercase tracking-widest text-slate-400 text-center">
+                          Qty
+                        </th>
+                        <th className="px-5 py-4 font-black uppercase tracking-widest text-slate-400 text-right">
+                          Revenue
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {summary.itemBreakdown.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={3}
+                            className="px-5 py-10 text-center text-slate-400 font-bold"
+                          >
+                            No items sold today
+                          </td>
+                        </tr>
+                      ) : (
+                        summary.itemBreakdown.map((item) => (
+                          <tr key={item.itemId}>
+                            <td className="px-5 py-4 font-black text-base">
+                              {item.name}
+                            </td>
+                            <td className="px-5 py-4 font-black text-center text-base tabular-nums">
+                              {item.quantity}
+                            </td>
+                            <td className="px-5 py-4 font-black text-right text-base tabular-nums">
+                              {item.revenue.toFixed(0)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              {/* Final Summary Row for Print Look */}
+              <div className="pt-6 border-t border-dashed border-slate-200 dark:border-slate-800">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-500">
+                    Net Revenue
+                  </span>
+                  <span className="text-2xl font-black tabular-nums">
+                    {formatMoney(summary.totalRevenue)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-8 flex flex-col gap-3">
+              <button
+                onClick={handlePrint}
+                className="w-full rounded-2xl bg-indigo-600 py-5 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-700 shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                <Printer className="h-4 w-4" />
+                Confirm & Print Report
+              </button>
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                className="w-full rounded-2xl bg-slate-50 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 transition-colors"
+              >
+                Close Preview
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Hidden Print Content (Standard Layout) */}
+      {summary && (
+        <div className="hidden print:block w-full text-black">
+          <div className="text-center border-b-2 border-slate-900 pb-6 mb-8">
+            <h1 className="text-2xl font-black uppercase tracking-tighter">
+              Limat Terminal
+            </h1>
+            <p className="text-xs font-bold uppercase tracking-widest mt-1">
+              Daily Reconciliation Report
+            </p>
+            <p className="text-[10px] font-black mt-2">
+              Date: {new Date(selectedDate).toLocaleDateString()}
+            </p>
+          </div>
+
+          <div className="space-y-8">
+            <section>
+              <h2 className="text-[10px] font-black uppercase tracking-widest border-b pb-2 mb-4">
+                Financial Overview
+              </h2>
+              <div className="space-y-2">
+                <div className="flex justify-between font-bold">
+                  <span>Total Revenue:</span>{" "}
+                  <span>{formatMoney(summary.totalRevenue)}</span>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-[10px] font-black uppercase tracking-widest border-b pb-2 mb-4">
+                Payment Breakdown (Sales)
+              </h2>
+              <div className="space-y-2">
+                <div className="flex justify-between font-bold">
+                  <span>Cash:</span>{" "}
+                  <span>{formatMoney(summary.paymentBreakdown.CASH)}</span>
+                </div>
+                <div className="flex justify-between font-bold">
+                  <span>Telebirr:</span>{" "}
+                  <span>{formatMoney(summary.paymentBreakdown.TELEBIRR)}</span>
+                </div>
+                <div className="flex justify-between font-bold">
+                  <span>CBE:</span>{" "}
+                  <span>{formatMoney(summary.paymentBreakdown.CBE)}</span>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-[10px] font-black uppercase tracking-widest border-b pb-2 mb-4">
+                Tip Breakdown
+              </h2>
+              <div className="space-y-2">
+                <div className="flex justify-between font-bold">
+                  <span>Cash Tips:</span>{" "}
+                  <span>{formatMoney(summary.tipBreakdown.CASH)}</span>
+                </div>
+                <div className="flex justify-between font-bold">
+                  <span>Telebirr Tips:</span>{" "}
+                  <span>{formatMoney(summary.tipBreakdown.TELEBIRR)}</span>
+                </div>
+                <div className="flex justify-between font-bold">
+                  <span>CBE Tips:</span>{" "}
+                  <span>{formatMoney(summary.tipBreakdown.CBE)}</span>
+                </div>
+                <div className="flex justify-between font-black pt-2 border-t mt-2">
+                  <span>Total Tips:</span>{" "}
+                  <span>{formatMoney(summary.totalTips)}</span>
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="text-[10px] font-black uppercase tracking-widest border-b pb-2 mb-4">
+                Item Breakdown
+              </h2>
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b">
+                    <th className="py-2 text-[12px] font-black">Item Name</th>
+                    <th className="py-2 text-center text-[12px] font-black">
+                      Qty
+                    </th>
+                    <th className="py-2 text-right text-[12px] font-black">
+                      Revenue
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y">
+                  {summary.itemBreakdown.map((item) => (
+                    <tr key={item.itemId}>
+                      <td className="py-3 text-[14px] font-black">
+                        {item.name}
+                      </td>
+                      <td className="py-3 text-center text-[14px] font-black">
+                        {item.quantity}
+                      </td>
+                      <td className="py-3 text-right text-[14px] font-black">
+                        {item.revenue.toFixed(0)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
+          </div>
+
+          <div className="mt-12 pt-8 border-t text-[8px] font-black text-center uppercase tracking-[0.3em] opacity-40">
+            End of Report · {new Date().toLocaleString()}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
