@@ -1,6 +1,6 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { Transactions, TransactionType, MovementType, Prisma } from '@prisma/client';
+import { Transactions, TransactionType, MovementType, Prisma, PaymentMethod } from '@prisma/client';
 import { StockService } from '../inventory/stock.service';
 import { PricesService } from '../inventory/prices.service';
 
@@ -12,7 +12,12 @@ export class SalesService {
     private pricesService: PricesService,
   ) {}
 
-  async createSale(userId: number, items: { itemId: number; quantity: number }[], tipAmount?: number): Promise<Transactions> {
+  async createSale(
+    userId: number,
+    items: { itemId: number; quantity: number }[],
+    tipAmount?: number,
+    paymentMethod: PaymentMethod = PaymentMethod.CASH,
+  ): Promise<Transactions> {
     console.log(`[SalesService] Creating sale for user ${userId}`, { items, tipAmount });
     
     if (!userId) {
@@ -50,6 +55,7 @@ export class SalesService {
             subtotal: new Prisma.Decimal(subtotal),
             tipAmount: tipAmount ? new Prisma.Decimal(tipAmount) : null,
             totalAmount: new Prisma.Decimal(totalAmount),
+            paymentMethod,
             userId,
             items: {
               create: transactionItemsData,
@@ -78,7 +84,13 @@ export class SalesService {
     }
   }
 
-  async createSpin(userId: number, spinResult: string, rewardItemId?: number, tipAmount?: number): Promise<Transactions> {
+  async createSpin(
+    userId: number,
+    spinResult: string,
+    rewardItemId?: number,
+    tipAmount?: number,
+    paymentMethod: PaymentMethod = PaymentMethod.CASH,
+  ): Promise<Transactions> {
     const SPIN_PRICE = 30;
 
     return this.prisma.$transaction(async (tx) => {
@@ -90,6 +102,7 @@ export class SalesService {
           subtotal: new Prisma.Decimal(SPIN_PRICE),
           tipAmount: tipAmount ? new Prisma.Decimal(tipAmount) : null,
           totalAmount: new Prisma.Decimal(totalAmount),
+          paymentMethod,
           userId,
           spinResult,
         },
@@ -115,8 +128,9 @@ export class SalesService {
     return this.pricesService.findCurrentPrice(itemId);
   }
 
-  async findAll(): Promise<Transactions[]> {
+  async findAll(userId?: number): Promise<Transactions[]> {
     return this.prisma.transactions.findMany({
+      where: userId ? { userId } : {},
       take: 10,
       orderBy: { createdAt: 'desc' },
       include: {

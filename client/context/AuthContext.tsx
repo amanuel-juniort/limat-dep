@@ -52,7 +52,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Handle redirects when loading finishes
   useEffect(() => {
-    if (!loading && !user && pathname !== "/login") {
+    const normalizedPath = pathname?.toLowerCase().replace(/\/$/, "") || "";
+    const publicRoutes = ["/login", "/signup"];
+
+    if (!loading && !user && !publicRoutes.includes(normalizedPath)) {
       router.push("/login");
     }
   }, [loading, user, pathname, router]);

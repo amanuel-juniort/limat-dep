@@ -13,8 +13,9 @@ export class ReportsService {
   ) {}
 
   async getDailySummary(date: Date = new Date()) {
-    const startOfDay = new Date(date.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(date.setHours(23, 59, 59, 999));
+    const d = new Date(date);
+    const startOfDay = new Date(d.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(d.setHours(23, 59, 59, 999));
 
     const transactions = await this.prisma.transactions.findMany({
       where: {
@@ -27,13 +28,13 @@ export class ReportsService {
 
     const salesRevenue = transactions
       .filter((t) => t.type === TransactionType.SALE)
-      .reduce((sum, t) => sum + Number(t.subtotal), 0);
+      .reduce((sum, t) => sum + Number(t.subtotal || 0), 0);
 
     const salesCount = transactions.filter((t) => t.type === TransactionType.SALE).length;
 
     const spinRevenue = transactions
       .filter((t) => t.type === TransactionType.SPIN)
-      .reduce((sum, t) => sum + Number(t.totalAmount), 0);
+      .reduce((sum, t) => sum + Number(t.totalAmount || 0), 0);
 
     const spinCount = transactions.filter((t) => t.type === TransactionType.SPIN).length;
 
@@ -49,11 +50,19 @@ export class ReportsService {
           type: TransactionType.SALE,
         },
       },
+      select: {
+        itemId: true,
+        quantity: true,
+      }
     });
 
+    // Cache average costs to avoid repetitive DB hits
+    const costCache = new Map<number, number>();
     for (const item of saleItems) {
-      const avgCost = await this.purchasesService.calculateAverageCost(item.itemId);
-      totalCOGS += avgCost * item.quantity;
+      if (!costCache.has(item.itemId)) {
+        costCache.set(item.itemId, await this.purchasesService.calculateAverageCost(item.itemId));
+      }
+      totalCOGS += (costCache.get(item.itemId) || 0) * item.quantity;
     }
 
     // Spin rewards cost (marketing cost)
@@ -66,21 +75,23 @@ export class ReportsService {
 
     let marketingCost = 0;
     for (const reward of spinRewards) {
-      const avgCost = await this.purchasesService.calculateAverageCost(reward.itemId);
-      marketingCost += avgCost * Math.abs(reward.quantityChange);
+      if (!costCache.has(reward.itemId)) {
+        costCache.set(reward.itemId, await this.purchasesService.calculateAverageCost(reward.itemId));
+      }
+      marketingCost += (costCache.get(reward.itemId) || 0) * Math.abs(reward.quantityChange);
     }
 
     return {
       date: startOfDay,
-      totalRevenue,
-      salesRevenue,
+      totalRevenue: Number(totalRevenue.toFixed(2)),
+      salesRevenue: Number(salesRevenue.toFixed(2)),
       salesCount,
-      spinRevenue,
+      spinRevenue: Number(spinRevenue.toFixed(2)),
       spinCount,
-      totalTips,
-      grossProfit: totalRevenue - totalCOGS - marketingCost,
-      totalCOGS,
-      marketingCost,
+      totalTips: Number(totalTips.toFixed(2)),
+      grossProfit: Number((totalRevenue - totalCOGS - marketingCost).toFixed(2)),
+      totalCOGS: Number(totalCOGS.toFixed(2)),
+      marketingCost: Number(marketingCost.toFixed(2)),
     };
   }
 

@@ -22,4 +22,24 @@ export class UserService {
       },
     });
   }
+
+  async findAll(): Promise<User[]> {
+    return this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getPendingCount(): Promise<number> {
+    const { UserStatus } = await import('@prisma/client');
+    return this.prisma.user.count({
+      where: { status: UserStatus.PENDING },
+    });
+  }
+
+  async update(id: number, data: Prisma.UserUpdateInput): Promise<User> {
+    return this.prisma.user.update({
+      where: { id },
+      data,
+    });
+  }
 }

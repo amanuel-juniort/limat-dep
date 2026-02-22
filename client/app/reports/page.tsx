@@ -5,36 +5,58 @@ import Link from "next/link";
 import {
   BarChart3,
   ArrowLeft,
-  Calendar,
-  Download,
+  Calendar as CalendarIcon,
   TrendingUp,
+  Wallet,
+  Gamepad2,
+  Coins,
+  Loader2,
+  ChevronLeft,
+  ChevronRight,
+  Printer,
   ShoppingCart,
   RotateCw,
-  Filter,
-  Loader2,
-  DollarSign,
   Package,
+  DollarSign,
+  Gift,
 } from "lucide-react";
 import api from "@/lib/api";
 import { cn } from "@/lib/utils";
 
+interface DailySummary {
+  date: string;
+  totalRevenue: number;
+  salesRevenue: number;
+  salesCount: number;
+  spinRevenue: number;
+  spinCount: number;
+  totalTips: number;
+  grossProfit: number;
+  totalCOGS: number;
+  marketingCost: number;
+}
+
 export default function ReportsPage() {
-  const [summary, setSummary] = useState<any>(null);
+  const [summary, setSummary] = useState<DailySummary | null>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState(
+    new Date().toISOString().split("T")[0],
+  );
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [selectedDate]);
 
   const fetchData = async () => {
+    setLoading(true);
     try {
       const [summaryRes, salesRes] = await Promise.all([
-        api.get("/reports/daily"),
-        api.get("/sales"),
+        api.get(`/reports/daily?date=${selectedDate}`),
+        api.get("/sales"), // We might want a date filter for sales too eventually
       ]);
       setSummary(summaryRes.data);
-      setTransactions(salesRes.data);
+      setTransactions(salesRes.data || []);
     } catch (error) {
       console.error("Failed to fetch reports data", error);
     } finally {
@@ -42,21 +64,28 @@ export default function ReportsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex h-screen flex-col items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-indigo-600" />
-        <p className="mt-4 font-black uppercase tracking-widest opacity-40">
-          Compiling Analytics...
-        </p>
-      </div>
-    );
-  }
+  const formatMoney = (value: number) =>
+    new Intl.NumberFormat("en-ET", {
+      style: "currency",
+      currency: "ETB",
+      maximumFractionDigits: 0,
+    }).format(value);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const adjustDate = (days: number) => {
+    const date = new Date(selectedDate);
+    date.setDate(date.getDate() + days);
+    setSelectedDate(date.toISOString().split("T")[0]);
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-zinc-50 overflow-x-hidden p-6">
-      <div className="mx-auto max-w-lg">
-        <header className="mb-8 flex flex-col gap-6">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-zinc-50 overflow-x-hidden p-6 print:p-0 print:bg-white print:text-black">
+      <div className="mx-auto max-w-lg print:max-w-none">
+        {/* Header - Hidden in Print */}
+        <header className="mb-8 flex flex-col gap-6 print:hidden">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Link
@@ -70,163 +99,273 @@ export default function ReportsPage() {
                   Business <span className="text-indigo-600">Analytics</span>
                 </h1>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Performance Report
+                  Daily Performance
                 </p>
               </div>
             </div>
-            <button className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-lg active:scale-95 transition-all dark:bg-white dark:text-black">
-              <Download className="h-4 w-4" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20">
+              <BarChart3 className="h-5 w-5" />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 rounded-2xl bg-white p-1 border border-slate-100 shadow-sm dark:bg-slate-900 dark:border-slate-800 flex-1">
+              <button
+                onClick={() => adjustDate(-1)}
+                className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <div className="flex flex-1 items-center justify-center gap-2 text-xs font-black uppercase tracking-widest">
+                <CalendarIcon className="h-3 w-3 text-indigo-600" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-transparent text-center outline-none cursor-pointer"
+                />
+              </div>
+              <button
+                onClick={() => adjustDate(1)}
+                className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+            <button
+              onClick={handlePrint}
+              className="flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 dark:shadow-none dark:bg-indigo-600"
+            >
+              <Printer className="h-5 w-5" />
             </button>
           </div>
         </header>
 
-        {/* Compact Metric Cards */}
-        <div className="grid gap-4 mb-8 grid-cols-2">
-          <div className="bento-card p-4 bg-white dark:bg-slate-900">
-            <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-3 w-3 text-indigo-600" />
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                Revenue
-              </p>
-            </div>
-            <h3 className="text-lg font-black tabular-nums">
-              {Number(summary?.totalRevenue || 0).toFixed(0)}{" "}
-              <span className="text-[10px] opacity-30">ETB</span>
-            </h3>
-          </div>
-
-          <div className="bento-card p-4 bg-white dark:bg-slate-900">
-            <div className="flex items-center gap-2 mb-2">
-              <DollarSign className="h-3 w-3 text-emerald-600" />
-              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-                Profit
-              </p>
-            </div>
-            <h3 className="text-lg font-black tabular-nums text-emerald-600">
-              {Number(summary?.grossProfit || 0).toFixed(0)}{" "}
-              <span className="text-[10px] opacity-30">ETB</span>
-            </h3>
-          </div>
-        </div>
-
-        {/* Detailed Breakdown List */}
-        <div className="bento-card p-6 border-none shadow-sm relative overflow-hidden mb-8">
-          <h3 className="text-sm font-black tracking-tight mb-6 uppercase text-slate-400 tabular-nums">
-            Daily Breakdown
-          </h3>
-
-          <div className="space-y-5">
-            {[
-              {
-                label: "Sales Revenue",
-                value: summary?.salesRevenue,
-                color: "text-slate-900 dark:text-white",
-                icon: ShoppingCart,
-              },
-              {
-                label: "Spin Revenue",
-                value: summary?.spinRevenue,
-                color: "text-indigo-600",
-                icon: RotateCw,
-              },
-              {
-                label: "Total Tips",
-                value: summary?.totalTips,
-                color: "text-emerald-500",
-                icon: DollarSign,
-              },
-              {
-                label: "Inventory COGS",
-                value: -(summary?.totalCOGS || 0),
-                color: "text-rose-500",
-                icon: Package,
-              },
-            ].map((row, idx) => (
-              <div
-                key={idx}
-                className="flex justify-between items-center group"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-lg bg-slate-50 dark:bg-white/5 flex items-center justify-center">
-                    {React.createElement(row.icon, {
-                      className: cn("h-3.5 w-3.5", row.color),
-                    })}
-                  </div>
-                  <p className="font-bold text-xs text-slate-600 dark:text-slate-300">
-                    {row.label}
-                  </p>
-                </div>
-                <p className={cn("text-sm font-black tabular-nums", row.color)}>
-                  {Number(row.value || 0).toFixed(2)}
-                </p>
-              </div>
-            ))}
-
-            <div className="h-[1px] w-full bg-slate-50 dark:bg-slate-800 my-4" />
-
-            <div className="flex justify-between items-end bg-indigo-50/50 dark:bg-indigo-900/10 p-4 rounded-xl">
-              <div>
-                <p className="text-[9px] font-black uppercase tracking-widest text-indigo-600 mb-1">
-                  Net Daily Profit
-                </p>
-                <h4 className="text-3xl font-black tracking-tighter tabular-nums text-indigo-600">
-                  {Number(summary?.grossProfit || 0).toFixed(2)}
-                </h4>
-              </div>
-              <div className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest bg-indigo-600 text-white">
-                High Margin
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Activity Feed */}
-        <div className="mb-12">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-1">
-            Recent Activity
+        {/* Print Header - Visible only in Print */}
+        <div className="hidden print:block mb-10 text-center border-b pb-8 border-slate-200">
+          <h1 className="text-3xl font-black mb-2 uppercase tracking-tighter">
+            Limat Terminal Report
+          </h1>
+          <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
+            Daily Summary ·{" "}
+            {new Date(selectedDate).toLocaleDateString("en-US", {
+              dateStyle: "full",
+            })}
           </p>
-          <div className="space-y-3">
-            {transactions.map((tx) => (
-              <div
-                key={tx.id}
-                className="bento-card p-4 flex items-center justify-between bg-white dark:bg-slate-900"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      "h-8 w-8 rounded-lg flex items-center justify-center text-white",
-                      tx.type === "SALE" ? "bg-indigo-600" : "bg-purple-600",
-                    )}
-                  >
-                    {tx.type === "SALE" ? (
-                      <ShoppingCart className="h-3 w-3" />
-                    ) : (
-                      <RotateCw className="h-3 w-3" />
-                    )}
+        </div>
+
+        {loading ? (
+          <div className="flex h-64 items-center justify-center print:hidden">
+            <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
+          </div>
+        ) : summary ? (
+          <div className="space-y-6">
+            {/* Primary Stat Card */}
+            <div className="bento-card overflow-hidden border-none bg-indigo-600 p-8 text-white shadow-2xl shadow-indigo-100 dark:shadow-none print:bg-slate-50 print:text-black print:border print:border-slate-200 print:shadow-none">
+              <div className="relative z-10">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 print:opacity-100">
+                  Total Transactions
+                </p>
+                <h2 className="mt-2 text-4xl font-black tracking-tighter print:text-3xl">
+                  {formatMoney(summary.totalRevenue)}
+                </h2>
+                <div className="mt-6 flex items-center gap-2 text-xs font-bold text-indigo-100 print:text-slate-500">
+                  <TrendingUp className="h-4 w-4" />
+                  <span>Gross Profit: {formatMoney(summary.grossProfit)}</span>
+                </div>
+              </div>
+              <BarChart3 className="absolute -bottom-6 -right-6 h-32 w-32 opacity-10 print:hidden" />
+            </div>
+
+            {/* Grid Stats */}
+            <div className="grid grid-cols-2 gap-4 print:grid-cols-2">
+              <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900 print:border print:border-slate-100 flex flex-col justify-between">
+                <div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 mb-3">
+                    <Wallet className="h-4 w-4" />
                   </div>
-                  <div>
-                    <h4 className="text-xs font-bold tracking-tight">
-                      {tx.type === "SALE"
-                        ? tx.items?.map((i: any) => i.item.name).join(", ") ||
-                          "Standard Sale"
-                        : `Wheel: ${tx.spinResult || "Reward"}`}
-                    </h4>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
-                      {new Date(tx.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}{" "}
-                      • {tx.user?.name}
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    POS Sales
+                  </p>
+                  <h3 className="text-lg font-black mt-1">
+                    {formatMoney(summary.salesRevenue)}
+                  </h3>
+                </div>
+                <p className="mt-2 text-[10px] font-bold text-slate-400">
+                  {summary.salesCount} Tickets
+                </p>
+              </div>
+
+              <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900 print:border print:border-slate-100 flex flex-col justify-between">
+                <div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-fuchsia-50 text-fuchsia-600 dark:bg-fuchsia-900/20 mb-3">
+                    <Gamepad2 className="h-4 w-4" />
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Spin Revenue
+                  </p>
+                  <h3 className="text-lg font-black mt-1">
+                    {formatMoney(summary.spinRevenue)}
+                  </h3>
+                </div>
+                <p className="mt-2 text-[10px] font-bold text-slate-400">
+                  {summary.spinCount} Spins
+                </p>
+              </div>
+
+              <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900 print:border print:border-slate-100 flex flex-col justify-between">
+                <div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 mb-3">
+                    <Coins className="h-4 w-4" />
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Total Tips
+                  </p>
+                  <h3 className="text-lg font-black mt-1">
+                    {formatMoney(summary.totalTips)}
+                  </h3>
+                </div>
+              </div>
+
+              <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900 print:border print:border-slate-100 flex flex-col justify-between">
+                <div>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-900/20 mb-3">
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    Profit Margin
+                  </p>
+                  <h3 className="text-lg font-black mt-1 text-emerald-600">
+                    {summary.totalRevenue > 0
+                      ? Math.round(
+                          (summary.grossProfit / summary.totalRevenue) * 100,
+                        )
+                      : 0}
+                    %
+                  </h3>
+                </div>
+              </div>
+            </div>
+
+            {/* Financial Breakdown Table */}
+            <div className="bento-card p-6 border-none shadow-sm dark:bg-slate-900 print:border print:border-slate-100">
+              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
+                Financial Summary
+              </h4>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center text-sm border-b border-slate-50 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2 text-slate-500 font-bold">
+                    <ShoppingCart className="h-3.5 w-3.5" /> Sales Revenue
+                  </div>
+                  <span className="font-black tabular-nums">
+                    {formatMoney(summary.salesRevenue)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-b border-slate-50 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2 text-slate-500 font-bold">
+                    <RotateCw className="h-3.5 w-3.5" /> Spin Revenue
+                  </div>
+                  <span className="font-black tabular-nums">
+                    {formatMoney(summary.spinRevenue)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-b border-slate-50 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2 text-slate-500 font-bold">
+                    <Package className="h-3.5 w-3.5" /> Inventory COGS
+                  </div>
+                  <span className="font-black tabular-nums text-rose-500">
+                    -{formatMoney(summary.totalCOGS)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm border-b border-slate-50 dark:border-slate-800 pb-3">
+                  <div className="flex items-center gap-2 text-slate-500 font-bold">
+                    <Gift className="h-3.5 w-3.5" /> Marketing Cost
+                  </div>
+                  <span className="font-black tabular-nums text-rose-500">
+                    -{formatMoney(summary.marketingCost)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center pt-2">
+                  <span className="text-xs font-black uppercase tracking-widest">
+                    Net Gross Profit
+                  </span>
+                  <span className="text-xl font-black text-emerald-500 tabular-nums">
+                    {formatMoney(summary.grossProfit)}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Activity Feed - Hidden in Print (Optional - keep for context) */}
+            <div className="mt-8 print:hidden">
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 ml-1">
+                Recent Transactions
+              </p>
+              <div className="space-y-3">
+                {transactions.slice(0, 10).map((tx) => (
+                  <div
+                    key={tx.id}
+                    className="bento-card p-4 flex items-center justify-between bg-white dark:bg-slate-900 border-none shadow-sm"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={cn(
+                          "h-8 w-8 rounded-lg flex items-center justify-center text-white",
+                          tx.type === "SALE"
+                            ? "bg-indigo-600"
+                            : "bg-purple-600",
+                        )}
+                      >
+                        {tx.type === "SALE" ? (
+                          <ShoppingCart className="h-3.5 w-3.5" />
+                        ) : (
+                          <RotateCw className="h-3.5 w-3.5" />
+                        )}
+                      </div>
+                      <div>
+                        <h4 className="text-xs font-bold tracking-tight">
+                          {tx.type === "SALE"
+                            ? tx.items
+                                ?.map((i: any) => i.item.name)
+                                .join(", ") || "Standard Sale"
+                            : `Wheel: ${tx.spinResult || "Reward"}`}
+                        </h4>
+                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
+                          {new Date(tx.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}{" "}
+                          · {tx.user?.name}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm font-black tabular-nums">
+                      {Math.round(tx.totalAmount)}
                     </p>
                   </div>
-                </div>
-                <p className="text-sm font-black tabular-nums">
-                  {Number(tx.totalAmount).toFixed(0)}
-                </p>
+                ))}
               </div>
-            ))}
+            </div>
+
+            {/* Footer Note - Print Only */}
+            <div className="hidden print:block text-[10px] font-bold text-slate-400 text-center mt-12 border-t pt-8 italic">
+              Limat Terminal Daily Reconciliation Report · Generated on{" "}
+              {new Date().toLocaleString()}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="bento-card p-12 text-center flex flex-col items-center">
+            <div className="h-16 w-16 rounded-2xl bg-slate-50 flex items-center justify-center mb-6 dark:bg-slate-900">
+              <BarChart3 className="h-8 w-8 text-slate-200" />
+            </div>
+            <h3 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+              No Data Available
+            </h3>
+            <p className="mt-2 text-xs text-slate-400 font-medium font-bold">
+              There are no transactions for the selected date.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

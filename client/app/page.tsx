@@ -14,6 +14,7 @@ import {
   TrendingUp,
   Activity,
   RotateCw,
+  ShieldAlert,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,21 +30,31 @@ export default function Home() {
     stockPercent: number;
     loading: boolean;
     recentTransactions: any[];
+    pendingUsers: number;
   }>({
     totalRevenue: 0,
     salesCount: 0,
     stockPercent: 100,
     loading: true,
     recentTransactions: [],
+    pendingUsers: 0,
   });
 
   const fetchData = async () => {
     try {
-      const [dailyRes, invRes, salesRes] = await Promise.all([
+      const endpoints: any[] = [
         api.get("/reports/daily"),
         api.get("/reports/inventory"),
         api.get("/sales"),
-      ]);
+      ];
+
+      // Only fetch pending users for ADMIN
+      if (user?.role === "ADMIN") {
+        endpoints.push(api.get("/users/pending-count"));
+      }
+
+      const responses = await Promise.all(endpoints);
+      const [dailyRes, invRes, salesRes] = responses;
 
       const inv = invRes.data;
       const lowStock = inv.filter((i: any) => i.currentStock < 5).length;
@@ -52,12 +63,16 @@ export default function Home() {
           ? Math.round(((inv.length - lowStock) / inv.length) * 100)
           : 100;
 
+      const pendingUsers =
+        user?.role === "ADMIN" ? responses[3]?.data?.count || 0 : 0;
+
       setStats({
         totalRevenue: Number(dailyRes.data.totalRevenue),
         salesCount: Number(dailyRes.data.salesCount || 0),
         stockPercent,
         loading: false,
         recentTransactions: salesRes.data,
+        pendingUsers,
       });
     } catch (err) {
       console.error("Failed to fetch dashboard stats", err);
@@ -284,6 +299,17 @@ export default function Home() {
               icon: Settings,
               color: "bg-slate-600",
             },
+            ...(user?.role === "ADMIN"
+              ? [
+                  {
+                    label: "Admin Control",
+                    href: "/admin/users",
+                    icon: ShieldAlert,
+                    color: "bg-rose-600",
+                    badgeCount: stats.pendingUsers,
+                  },
+                ]
+              : []),
           ].map((item) => (
             <Link
               key={item.href}
@@ -308,7 +334,13 @@ export default function Home() {
                   </p>
                 </div>
               </div>
-              <ArrowUpRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+              {(item as any).badgeCount && (item as any).badgeCount > 0 ? (
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white shadow-lg shadow-rose-200 dark:shadow-none animate-in zoom-in duration-300">
+                  {(item as any).badgeCount}
+                </div>
+              ) : (
+                <ArrowUpRight className="h-4 w-4 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+              )}
             </Link>
           ))}
         </div>

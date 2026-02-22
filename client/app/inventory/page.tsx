@@ -30,6 +30,7 @@ export default function InventoryPage() {
     sku: "",
     price: "",
     description: "",
+    initialQuantity: "0",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -59,7 +60,13 @@ export default function InventoryPage() {
       });
     } else {
       setEditingItem(null);
-      setFormData({ name: "", sku: "", price: "", description: "" });
+      setFormData({
+        name: "",
+        sku: "",
+        price: "",
+        description: "",
+        initialQuantity: "0",
+      });
     }
     setIsModalOpen(true);
   };
@@ -74,15 +81,16 @@ export default function InventoryPage() {
         // Update item details
         await api.patch(`/items/${editingItem.id}`, {
           name: formData.name,
-          sku: formData.sku,
+          sku: formData.sku.trim() || null,
           description: formData.description,
         });
       } else {
         // Create new item
         const itemRes = await api.post("/items", {
           name: formData.name,
-          sku: formData.sku,
+          sku: formData.sku.trim() || null,
           description: formData.description,
+          initialQuantity: Number(formData.initialQuantity),
         });
         itemId = itemRes.data.id;
       }
@@ -186,6 +194,9 @@ export default function InventoryPage() {
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
                       Item
                     </th>
+                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                      Stock
+                    </th>
                     <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
                       Price
                     </th>
@@ -212,6 +223,18 @@ export default function InventoryPage() {
                             </p>
                           </div>
                         </div>
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={cn(
+                            "inline-flex items-center justify-center rounded-lg px-2 py-1 text-xs font-black tabular-nums",
+                            (item as any).totalStock <= 5
+                              ? "bg-rose-50 text-rose-600 dark:bg-rose-900/20"
+                              : "bg-slate-50 text-slate-600 dark:bg-slate-800",
+                          )}
+                        >
+                          {(item as any).totalStock || 0}
+                        </span>
                       </td>
                       <td className="px-6 py-4 text-right">
                         <p className="text-sm font-black tabular-nums">
@@ -312,6 +335,26 @@ export default function InventoryPage() {
                   />
                 </div>
               </div>
+
+              {!editingItem && (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Initial Stock Quantity
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.initialQuantity}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        initialQuantity: e.target.value,
+                      })
+                    }
+                    placeholder="0"
+                    className="w-full rounded-2xl border border-slate-100 bg-slate-50/50 p-4 text-sm font-black tabular-nums outline-none focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all dark:bg-white/5 dark:border-slate-800"
+                  />
+                </div>
+              )}
 
               <div className="pt-4 flex gap-3">
                 {editingItem && (

@@ -23,6 +23,9 @@ import {
   ShoppingCart,
   PenSquare,
   ArrowLeft,
+  Wallet,
+  Landmark,
+  Smartphone,
 } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
@@ -61,6 +64,9 @@ export default function PosPage() {
   const [spinResults, setSpinResults] = useState<SpinResult[]>([]);
   const [tipAmount, setTipAmount] = useState<number>(0);
   const [paidAmount, setPaidAmount] = useState<number>(0);
+  const [paymentMethod, setPaymentMethod] = useState<
+    "CASH" | "TELEBIRR" | "CBE"
+  >("CASH");
   const [customTip, setCustomTip] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
@@ -92,7 +98,7 @@ export default function PosPage() {
       const formatted = response.data.map((i: any) => ({
         ...i,
         price: Number(i.prices?.[0]?.price || 0),
-        stock: 99, // Backend simple view doesn't provide real stock currently
+        stock: Number(i.totalStock || 0),
         category: "General",
       }));
       setItems(formatted);
@@ -106,12 +112,13 @@ export default function PosPage() {
   // Spin price constant
   const SPIN_PRICE = 30;
 
-  // Filter items based on search
+  // Filter items based on search AND stock availability
   const filteredItems = items.filter(
     (item) =>
-      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (item.category &&
-        item.category.toLowerCase().includes(searchQuery.toLowerCase())),
+      item.stock > 0 &&
+      (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (item.category &&
+          item.category.toLowerCase().includes(searchQuery.toLowerCase()))),
   );
 
   // Calculations
@@ -335,6 +342,7 @@ export default function PosPage() {
         const response = await api.post("/sales", {
           items: itemsToBuy,
           tipAmount: tipAmount,
+          paymentMethod: paymentMethod,
         });
         setLastTransaction(response.data);
       } else {
@@ -741,6 +749,35 @@ export default function PosPage() {
             </div>
           </div>
 
+          <div className="mb-6">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+              <Wallet className="h-3 w-3" /> Payment Method
+            </p>
+            <div className="flex gap-2">
+              {[
+                { id: "CASH", label: "Cash", icon: HandCoins },
+                { id: "TELEBIRR", label: "Telebirr", icon: Smartphone },
+                { id: "CBE", label: "CBE", icon: Landmark },
+              ].map((method) => (
+                <button
+                  key={method.id}
+                  onClick={() => setPaymentMethod(method.id as any)}
+                  className={cn(
+                    "flex-1 flex flex-col items-center gap-2 rounded-xl py-4 border transition-all",
+                    paymentMethod === method.id
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
+                      : "bg-white text-slate-400 border-slate-100 hover:border-indigo-100 dark:bg-slate-800 dark:border-slate-800",
+                  )}
+                >
+                  <method.icon className="h-5 w-5" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {method.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Payment */}
           <div className="bento-card p-5 border-none shadow-sm bg-white dark:bg-slate-900">
             <div className="mb-4">
@@ -894,15 +931,17 @@ export default function PosPage() {
                     <option value="" className="text-slate-900">
                       Search Inventory...
                     </option>
-                    {items.map((item) => (
-                      <option
-                        key={item.id}
-                        value={item.id}
-                        className="text-slate-900"
-                      >
-                        {item.name} - {item.price} ETB
-                      </option>
-                    ))}
+                    {items
+                      .filter((item) => item.stock > 0)
+                      .map((item) => (
+                        <option
+                          key={item.id}
+                          value={item.id}
+                          className="text-slate-900"
+                        >
+                          {item.name} (Stock: {item.stock})
+                        </option>
+                      ))}
                   </select>
                 </div>
               )}

@@ -9,7 +9,7 @@ export class ItemsController {
   constructor(private readonly itemsService: ItemsService) {}
 
   @Post()
-  create(@Body() createItemDto: Prisma.ItemsCreateInput) {
+  create(@Body() createItemDto: Prisma.ItemsCreateInput & { initialQuantity?: number }) {
     return this.itemsService.create(createItemDto);
   }
 
