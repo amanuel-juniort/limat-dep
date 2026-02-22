@@ -6,6 +6,7 @@ export interface Item {
   isActive: boolean;
   prices?: ItemPrice[];
   currentPrice?: number;
+  totalStock?: number;
 }
 
 export interface ItemPrice {

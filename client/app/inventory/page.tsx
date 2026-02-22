@@ -57,6 +57,7 @@ export default function InventoryPage() {
         sku: item.sku || "",
         price: item.prices?.[0]?.price.toString() || "",
         description: item.description || "",
+        initialQuantity: "0",
       });
     } else {
       setEditingItem(null);
@@ -228,12 +229,12 @@ export default function InventoryPage() {
                         <span
                           className={cn(
                             "inline-flex items-center justify-center rounded-lg px-2 py-1 text-xs font-black tabular-nums",
-                            (item as any).totalStock <= 5
+                            (item.totalStock || 0) <= 5
                               ? "bg-rose-50 text-rose-600 dark:bg-rose-900/20"
                               : "bg-slate-50 text-slate-600 dark:bg-slate-800",
                           )}
                         >
-                          {(item as any).totalStock || 0}
+                          {item.totalStock || 0}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-right">
