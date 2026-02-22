@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  phone     String     @unique
+  email     String?    @unique
+  name      String
+  password  String
+  role      Role       @default(CASHIER)
+  status    UserStatus @default(PENDING)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  transactions Transactions[]
+  purchases    Purchases[]
+}
+
+enum Role {
+  ADMIN
+  CASHIER
+  NORMAL
+}
+
+enum UserStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Items {
+  id          Int      @id @default(autoincrement())
+  name        String
+  sku         String?  @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  prices             ItemPrices[]
+  transactionItems   TransactionItems[]
+  purchaseItems      PurchaseItems[]
+  inventoryMovements InventoryMovements[]
+}
+
+model ItemPrices {
+  id            Int       @id @default(autoincrement())
+  itemId        Int
+  item          Items     @relation(fields: [itemId], references: [id])
+  price         Decimal   @db.Decimal(12, 2)
+  effectiveFrom DateTime  @default(now())
+  effectiveTo   DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([itemId])
+}
+
+enum TransactionType {
+  SALE
+  SPIN
+}
+
+model Transactions {
+  id          Int             @id @default(autoincrement())
+  type        TransactionType
+  subtotal    Decimal         @db.Decimal(12, 2)
+  tipAmount   Decimal?        @db.Decimal(12, 2)
+  totalAmount Decimal         @db.Decimal(12, 2)
+  userId      Int
+  user        User            @relation(fields: [userId], references: [id])
+  createdAt   DateTime        @default(now())
+  spinResult  String? // "Thanks" or Item Name/ID info
+
+  items TransactionItems[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model TransactionItems {
+  id            Int          @id @default(autoincrement())
+  transactionId Int
+  transaction   Transactions @relation(fields: [transactionId], references: [id])
+  itemId        Int
+  item          Items        @relation(fields: [itemId], references: [id])
+  quantity      Int
+  unitPrice     Decimal      @db.Decimal(12, 2)
+  subtotal      Decimal      @db.Decimal(12, 2)
+
+  @@index([transactionId])
+  @@index([itemId])
+}
+
+model Purchases {
+  id            Int      @id @default(autoincrement())
+  supplierName  String?
+  invoiceNumber String?
+  totalCost     Decimal  @db.Decimal(12, 2)
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  createdAt     DateTime @default(now())
+
+  items PurchaseItems[]
+
+  @@index([userId])
+}
+
+model PurchaseItems {
+  id         Int       @id @default(autoincrement())
+  purchaseId Int
+  purchase   Purchases @relation(fields: [purchaseId], references: [id])
+  itemId     Int
+  item       Items     @relation(fields: [itemId], references: [id])
+  quantity   Int
+  unitCost   Decimal   @db.Decimal(12, 2)
+  subtotal   Decimal   @db.Decimal(12, 2)
+
+  @@index([purchaseId])
+  @@index([itemId])
+}
+
+enum MovementType {
+  PURCHASE
+  SALE
+  SPIN_REWARD
+  ADJUSTMENT
+}
+
+model InventoryMovements {
+  id             Int          @id @default(autoincrement())
+  itemId         Int
+  item           Items        @relation(fields: [itemId], references: [id])
+  type           MovementType
+  quantityChange Int
+  referenceId    Int?
+  referenceType  String?
+  createdAt      DateTime     @default(now())
+
+  @@index([itemId])
+  @@index([createdAt])
+}
