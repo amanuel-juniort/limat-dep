@@ -30,30 +30,6 @@ async function main() {
     },
   });
   console.log('Admin created/updated:', admin.phone);
-
-  // 2. Create Items
-  const items = [
-    { name: 'Water 500ml', sku: 'WTR500' },
-    { name: 'Coca Cola 300ml', sku: 'COKE300' },
-  ];
-
-  for (const itemData of items) {
-    const item = await prisma.items.upsert({
-      where: { sku: itemData.sku },
-      update: {},
-      create: itemData,
-    });
-    console.log('Item created:', item.name);
-
-    // 3. Set Initial Price
-    await prisma.itemPrices.create({
-      data: {
-        itemId: item.id,
-        price: 15.0,
-        effectiveFrom: new Date(),
-      },
-    });
-  }
 }
 
 main()
