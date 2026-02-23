@@ -107,21 +107,47 @@ export class ReportsService {
       revenue: Number(data.revenue.toFixed(2))
     }));
 
-    // Spin rewards cost (marketing cost)
+    // Spin rewards items & cost
     const spinRewards = await this.prisma.inventoryMovements.findMany({
       where: {
         createdAt: { gte: startOfDay, lte: endOfDay },
         type: MovementType.SPIN_REWARD,
       },
+      include: {
+        item: {
+          select: { name: true },
+        },
+      },
     });
 
+    const spinItemMap = new Map<number, { name: string; quantity: number }>();
     let marketingCost = 0;
+
     for (const reward of spinRewards) {
       if (!costCache.has(reward.itemId)) {
-        costCache.set(reward.itemId, await this.purchasesService.calculateAverageCost(reward.itemId));
+        costCache.set(
+          reward.itemId,
+          await this.purchasesService.calculateAverageCost(reward.itemId),
+        );
       }
-      marketingCost += (costCache.get(reward.itemId) || 0) * Math.abs(reward.quantityChange);
+      marketingCost +=
+        (costCache.get(reward.itemId) || 0) * Math.abs(reward.quantityChange);
+
+      // Aggregating for spinBreakdown
+      const existing = spinItemMap.get(reward.itemId) || {
+        name: reward.item.name,
+        quantity: 0,
+      };
+      existing.quantity += Math.abs(reward.quantityChange);
+      spinItemMap.set(reward.itemId, existing);
     }
+
+    const spinBreakdown = Array.from(spinItemMap.entries()).map(
+      ([itemId, data]) => ({
+        itemId,
+        ...data,
+      }),
+    );
 
     return {
       date: startOfDay,
@@ -131,7 +157,9 @@ export class ReportsService {
       spinRevenue: Number(spinRevenue.toFixed(2)),
       spinCount,
       totalTips: Number(totalTips.toFixed(2)),
-      grossProfit: Number((totalRevenue - totalCOGS - marketingCost).toFixed(2)),
+      grossProfit: Number(
+        (totalRevenue - totalCOGS - marketingCost).toFixed(2),
+      ),
       totalCOGS: Number(totalCOGS.toFixed(2)),
       marketingCost: Number(marketingCost.toFixed(2)),
       paymentBreakdown: {
@@ -145,6 +173,7 @@ export class ReportsService {
         CBE: Number(tipBreakdown.CBE.toFixed(2)),
       },
       itemBreakdown,
+      spinBreakdown,
     };
   }
 

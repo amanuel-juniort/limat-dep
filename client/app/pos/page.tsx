@@ -893,8 +893,8 @@ export default function PosPage() {
                     className={cn(
                       "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
                       selectedPrizeType === "item"
-                        ? "border-indigo-600 bg-indigo-50 text-indigo-600"
-                        : "border-slate-100 bg-white text-slate-400",
+                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
+                        : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
                     )}
                   >
                     <Gift className="h-5 w-5" />
@@ -907,8 +907,8 @@ export default function PosPage() {
                     className={cn(
                       "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
                       selectedPrizeType === "thankyou"
-                        ? "border-indigo-600 bg-indigo-50 text-indigo-600"
-                        : "border-slate-100 bg-white text-slate-400",
+                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
+                        : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
                     )}
                   >
                     <Sparkles className="h-5 w-5" />
@@ -921,8 +921,8 @@ export default function PosPage() {
                     className={cn(
                       "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
                       selectedPrizeType === "discount"
-                        ? "border-indigo-600 bg-indigo-50 text-indigo-600"
-                        : "border-slate-100 bg-white text-slate-400",
+                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
+                        : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
                     )}
                   >
                     <Coins className="h-5 w-5" />
@@ -941,22 +941,14 @@ export default function PosPage() {
                   <select
                     value={selectedItemId}
                     onChange={(e) => setSelectedItemId(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
+                    className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
                   >
-                    <option value="" className="text-slate-900">
-                      Search Inventory...
-                    </option>
-                    {items
-                      .filter((item) => item.stock > 0)
-                      .map((item) => (
-                        <option
-                          key={item.id}
-                          value={item.id}
-                          className="text-slate-900"
-                        >
-                          {item.name} (Stock: {item.stock})
-                        </option>
-                      ))}
+                    <option value="">Search Inventory...</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} (Stock: {item.stock})
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -971,7 +963,7 @@ export default function PosPage() {
                     value={customMessage}
                     onChange={(e) => setCustomMessage(e.target.value)}
                     placeholder="Better luck next time!"
-                    className="w-full rounded-2xl border border-slate-100 bg-slate-50 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
+                    className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
                   />
                 </div>
               )}
@@ -988,7 +980,7 @@ export default function PosPage() {
                       setDiscountAmount(parseFloat(e.target.value) || 0)
                     }
                     placeholder="e.g., 20"
-                    className="w-full rounded-xl border border-slate-100 bg-slate-50 px-4 py-4 text-xl font-black outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
+                    className="w-full rounded-xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xl font-black outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
                   />
                 </div>
               )}
@@ -1002,7 +994,7 @@ export default function PosPage() {
                 </button>
                 <button
                   onClick={() => setIsSpinModalOpen(false)}
-                  className="w-full rounded-2xl bg-slate-50 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 transition-colors"
+                  className="w-full rounded-2xl bg-slate-50 dark:bg-slate-800 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                 >
                   Close
                 </button>

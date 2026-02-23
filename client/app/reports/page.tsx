@@ -51,6 +51,11 @@ interface DailySummary {
     quantity: number;
     revenue: number;
   }>;
+  spinBreakdown: Array<{
+    itemId: number;
+    name: string;
+    quantity: number;
+  }>;
 }
 
 export default function ReportsPage() {
@@ -535,6 +540,41 @@ export default function ReportsPage() {
                 </div>
               </section>
 
+              {/* Spin Prizes Distributed */}
+              {summary.spinBreakdown.length > 0 && (
+                <section>
+                  <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-purple-600 mb-4 ml-1">
+                    Spin Prizes Distributed
+                  </h4>
+                  <div className="rounded-2xl border border-purple-100 bg-purple-50/20 dark:border-purple-900/30 overflow-hidden">
+                    <table className="w-full text-left text-sm">
+                      <thead className="bg-purple-50 dark:bg-purple-900/20">
+                        <tr>
+                          <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-purple-600">
+                            Prize Item
+                          </th>
+                          <th className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-purple-600 text-center">
+                            Qty
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-purple-100 dark:divide-purple-900/30">
+                        {summary.spinBreakdown.map((item) => (
+                          <tr key={item.itemId}>
+                            <td className="px-5 py-4 font-black">
+                              {item.name}
+                            </td>
+                            <td className="px-5 py-4 font-black text-center tabular-nums text-purple-600">
+                              {item.quantity}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+              )}
+
               {/* Final Summary Row for Print Look */}
               <div className="pt-6 border-t border-dashed border-slate-200 dark:border-slate-800">
                 <div className="flex justify-between items-center mb-2">
@@ -672,6 +712,39 @@ export default function ReportsPage() {
                 </tbody>
               </table>
             </section>
+
+            {/* Print Spin Prizes */}
+            {summary.spinBreakdown.length > 0 && (
+              <section>
+                <h2 className="text-[10px] font-black uppercase tracking-widest border-b border-purple-200 pb-2 mb-4 text-purple-600">
+                  Spin Prizes Distributed
+                </h2>
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b">
+                      <th className="py-2 text-[12px] font-black">
+                        Prize Item
+                      </th>
+                      <th className="py-2 text-center text-[12px] font-black">
+                        Qty
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y">
+                    {summary.spinBreakdown.map((item) => (
+                      <tr key={item.itemId}>
+                        <td className="py-3 text-[14px] font-black">
+                          {item.name}
+                        </td>
+                        <td className="py-3 text-center text-[14px] font-black text-purple-600">
+                          {item.quantity}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </section>
+            )}
           </div>
 
           <div className="mt-12 pt-8 border-t text-[8px] font-black text-center uppercase tracking-[0.3em] opacity-40">
