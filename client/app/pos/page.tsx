@@ -118,11 +118,10 @@ export default function PosPage() {
   // Filter items based on search AND stock availability
   const filteredItems = items.filter(
     (item) =>
-      item.stock > 0 &&
-      (item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (item.category &&
-          item.category.toLowerCase().includes(searchQuery.toLowerCase()))),
+      item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.category &&
+        item.category.toLowerCase().includes(searchQuery.toLowerCase())),
   );
 
   // Calculations
@@ -467,6 +466,18 @@ export default function PosPage() {
                           <p className="text-sm font-bold">{item.name}</p>
                           <span className="text-[8px] font-black uppercase px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">
                             {item.category || "General"}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-[8px] font-black uppercase px-2 py-0.5 rounded-full",
+                              item.stock > 0
+                                ? "bg-emerald-50 text-emerald-600"
+                                : "bg-rose-50 text-rose-500",
+                            )}
+                          >
+                            {item.stock > 0
+                              ? `${item.stock} in stock`
+                              : "Out of Stock"}
                           </span>
                         </div>
                         <p className="text-[10px] font-black text-indigo-600 uppercase mt-1">
