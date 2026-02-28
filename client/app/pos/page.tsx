@@ -66,7 +66,7 @@ export default function PosPage() {
   const [tipAmount, setTipAmount] = useState<number>(0);
   const [paidAmount, setPaidAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<
-    "CASH" | "TELEBIRR" | "CBE"
+    "CASH" | "TELEBIRR" | "CBE" | "CUSTOM"
   >("CASH");
   const [customTip, setCustomTip] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -74,9 +74,44 @@ export default function PosPage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<boolean>(false);
   const [lastTransaction, setLastTransaction] = useState<any>(null);
+  const [isCustomPaymentOpen, setIsCustomPaymentOpen] =
+    useState<boolean>(false);
+
+  // New states for enhancements
+  const [customPayments, setCustomPayments] = useState<{
+    CASH: number;
+    TELEBIRR: number;
+    CBE: number;
+  }>({
+    CASH: 0,
+    TELEBIRR: 0,
+    CBE: 0,
+  });
+
+  const [customPaymentsTemp, setCustomPaymentsTemp] = useState<{
+    CASH: number;
+    TELEBIRR: number;
+    CBE: number;
+  }>({
+    CASH: 0,
+    TELEBIRR: 0,
+    CBE: 0,
+  });
+
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
+
+  const showToast = (
+    message: string,
+    type: "success" | "error" | "info" = "info",
+  ) => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
   // Modal state for recording spin results
-  const [isSpinModalOpen, setIsSpinModalOpen] = useState<boolean>(false);
   const [selectedPrizeType, setSelectedPrizeType] = useState<
     "item" | "thankyou" | "discount"
   >("item");
@@ -132,7 +167,12 @@ export default function PosPage() {
   const spinTotalCharge = (spinQuantity + spinResults.length) * SPIN_PRICE;
   const subtotal = normalSubtotal + spinTotalCharge;
   const total = subtotal + tipAmount;
-  const change = Math.max(0, paidAmount - total);
+
+  const effectivePaidAmount =
+    paymentMethod === "CUSTOM"
+      ? customPayments.CASH + customPayments.TELEBIRR + customPayments.CBE
+      : paidAmount;
+  const change = Math.max(0, effectivePaidAmount - total);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -195,7 +235,7 @@ export default function PosPage() {
   // Open modal to record spin result
   const openSpinModal = () => {
     if (spinQuantity === 0) {
-      alert("Add spins first!");
+      showToast("Add spins first!", "error");
       return;
     }
 
@@ -204,18 +244,15 @@ export default function PosPage() {
     setSelectedItemId("");
     setCustomMessage("");
     setDiscountAmount(0);
-    setIsSpinModalOpen(true);
   };
 
   // Save spin result from modal
   const saveSpinResult = () => {
-    if (spinQuantity === 0) return;
-
     let result: SpinResult;
 
     if (selectedPrizeType === "item") {
       if (!selectedItemId) {
-        alert("Select an item won");
+        showToast("Select an item won", "error");
         return;
       }
       const item = items.find((i) => String(i.id) === String(selectedItemId));
@@ -235,20 +272,11 @@ export default function PosPage() {
         message: customMessage || "Thanks for playing!",
         timestamp: new Date(),
       };
-    } else {
-      // discount
-      result = {
-        id: Date.now().toString() + Math.random(),
-        type: "discount",
-        discountAmount: discountAmount || 10,
-        message: `${discountAmount || 10} ETB discount on next purchase`,
-        timestamp: new Date(),
-      };
     }
 
     setSpinResults((prev) => [result, ...prev]);
-    setSpinQuantity((prev) => prev - 1);
-    setIsSpinModalOpen(false);
+    setSpinQuantity((prev) => Math.max(0, prev - 1));
+    showToast("Spin result recorded!", "success");
   };
 
   const deleteSpinResult = (id: string) => {
@@ -267,6 +295,7 @@ export default function PosPage() {
     setTipAmount(0);
     setPaidAmount(0);
     setCustomTip("");
+    setCustomPayments({ CASH: 0, TELEBIRR: 0, CBE: 0 });
   };
 
   // Tip functions
@@ -286,7 +315,9 @@ export default function PosPage() {
     if (change > 0) {
       setTipAmount((prev) => prev + change);
       setCustomTip((tipAmount + change).toFixed(0));
-      setPaidAmount(0);
+      if (paymentMethod !== "CUSTOM") {
+        setPaidAmount(0);
+      }
     }
   };
 
@@ -299,14 +330,35 @@ export default function PosPage() {
 
   // Complete sale
   const handleCompleteSale = async () => {
-    if (cart.length === 0 && spinQuantity === 0 && spinResults.length === 0) {
-      alert("No items or spins in cart");
+    const hasItems =
+      cart.length > 0 || spinQuantity > 0 || spinResults.length > 0;
+    const hasTip = tipAmount > 0;
+
+    if (!hasItems && !hasTip) {
+      showToast("Cart is empty", "error");
       return;
     }
 
-    if (paidAmount < total - 0.01 && paidAmount > 0) {
-      alert(`Customer owes ${(total - paidAmount).toFixed(2)} ETB`);
-      return;
+    // 2. High-level payment guards
+    if (paymentMethod === "CUSTOM") {
+      const totalPaid =
+        customPayments.CASH + customPayments.TELEBIRR + customPayments.CBE;
+      if (totalPaid < total - 0.01) {
+        showToast(
+          `Remaining balance: ${formatMoney(total - totalPaid)}`,
+          "error",
+        );
+        return;
+      }
+    } else {
+      if (paidAmount < total - 0.01 && paidAmount > 0) {
+        showToast(`Customer owes ${formatMoney(total - paidAmount)}`, "info");
+        return;
+      }
+      if (paidAmount < total - 0.01) {
+        showToast("Payment amount not covered", "error");
+        return;
+      }
     }
 
     setProcessing(true);
@@ -342,21 +394,28 @@ export default function PosPage() {
       }));
 
       if (itemsToBuy.length > 0 || tipAmount > 0) {
-        const response = await api.post("/sales", {
+        const payload: any = {
           items: itemsToBuy,
           tipAmount: tipAmount,
           paymentMethod: paymentMethod,
-        });
+        };
+
+        if (paymentMethod === "CUSTOM") {
+          payload.splitPayments = customPayments;
+        }
+
+        const response = await api.post("/sales", payload);
         setLastTransaction(response.data);
       } else {
         setLastTransaction({ id: "SPIN-ONLY" });
       }
 
       clearAll();
+      showToast("Sale completed successfully!", "success");
       setTimeout(() => setLastTransaction(null), 3000);
     } catch (error) {
       console.error("Transaction failed:", error);
-      alert("Error completing sale. Check console for details.");
+      showToast("Error completing sale", "error");
     } finally {
       setProcessing(false);
     }
@@ -372,6 +431,45 @@ export default function PosPage() {
       </div>
     );
   }
+
+  const validateCustomPayment = () => {
+    const totalAdded =
+      customPaymentsTemp.CASH +
+      customPaymentsTemp.TELEBIRR +
+      customPaymentsTemp.CBE;
+
+    if (totalAdded === 0) {
+      showToast("Please enter at least one payment amount", "error");
+      return;
+    }
+
+    if (totalAdded > total) {
+      const excess = totalAdded - total;
+      const keepAsTip = confirm(
+        `Total payment (${formatMoney(totalAdded)}) exceeds order total (${formatMoney(total)}). \n\nWould you like to keep the ${formatMoney(excess)} change as a tip?`,
+      );
+
+      if (keepAsTip) {
+        setTipAmount((prev) => prev + excess);
+        showToast(`Added ${formatMoney(excess)} to tips`, "success");
+      }
+      // Save changes even if they keep change as tip
+      setCustomPayments(customPaymentsTemp);
+      setIsCustomPaymentOpen(false);
+    } else {
+      if (totalAdded < total) {
+        showToast(
+          `Remaining balance: ${formatMoney(total - totalAdded)}`,
+          "info",
+        );
+      } else {
+        showToast("Payment amounts set", "success");
+      }
+      // Save changes for both exact and underpayments
+      setCustomPayments(customPaymentsTemp);
+      setIsCustomPaymentOpen(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans">
@@ -405,7 +503,112 @@ export default function PosPage() {
           </div>
         </header>
 
+        {/* Spin Result Modal */}
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+          <Gift className="h-3 w-3" /> Spin Result
+        </p>
+        <div
+          ref={modalRef}
+          className="w-full max-w-md mb-4 rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl animate-in zoom-in-95 duration-200"
+        >
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                Spin Result
+              </h3>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                Capture the prize outcome
+              </p>
+            </div>
+          </div>
+
+          <div className="mb-6 space-y-3">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+              Win Category
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setSelectedPrizeType("item")}
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
+                  selectedPrizeType === "item"
+                    ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
+                    : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
+                )}
+              >
+                <Gift className="h-5 w-5" />
+                <span className="text-[10px] font-black uppercase">Item</span>
+              </button>
+              <button
+                onClick={() => setSelectedPrizeType("thankyou")}
+                className={cn(
+                  "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
+                  selectedPrizeType === "thankyou"
+                    ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
+                    : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
+                )}
+              >
+                <Sparkles className="h-5 w-5" />
+                <span className="text-[10px] font-black uppercase">Thanks</span>
+              </button>
+            </div>
+          </div>
+
+          {selectedPrizeType === "item" && (
+            <div className="mb-8">
+              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                Select Won Item
+              </label>
+              <select
+                value={selectedItemId}
+                onChange={(e) => setSelectedItemId(e.target.value)}
+                className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
+              >
+                <option value="">Search Inventory...</option>
+                {items.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} (Stock: {item.stock})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {selectedPrizeType === "thankyou" && (
+            <div className="mb-8">
+              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                Message (Optional)
+              </label>
+              <input
+                type="text"
+                value={customMessage}
+                onChange={(e) => setCustomMessage(e.target.value)}
+                placeholder="Better luck next time!"
+                className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
+              />
+            </div>
+          )}
+
+          <div className="flex flex-col gap-3">
+            <button
+              onClick={saveSpinResult}
+              className={cn(
+                "w-full rounded-2xl",
+                selectedPrizeType === "item" && !selectedItemId
+                  ? " bg-slate-50 dark:bg-slate-800 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  : "bg-indigo-600 py-5 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]",
+              )}
+              disabled={selectedPrizeType === "item" && !selectedItemId}
+            >
+              Record Result
+            </button>
+          </div>
+        </div>
+
         {/* Search */}
+        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+          <Wallet className="h-3 w-3" /> Sales
+        </p>
         <div className="mb-6" ref={dropdownRef}>
           <div className="relative">
             <div
@@ -463,6 +666,16 @@ export default function PosPage() {
                     >
                       <div>
                         <div className="flex items-center gap-2">
+                          <div
+                            className={cn(
+                              "h-2 w-2 rounded-full",
+                              item.stock > 10
+                                ? "bg-emerald-500"
+                                : item.stock > 0
+                                  ? "bg-amber-500"
+                                  : "bg-rose-500",
+                            )}
+                          />
                           <p className="text-sm font-bold">{item.name}</p>
                           <span className="text-[8px] font-black uppercase px-2 py-0.5 bg-slate-100 rounded-full text-slate-400">
                             {item.category || "General"}
@@ -490,63 +703,6 @@ export default function PosPage() {
                 )}
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Spin Card */}
-        <div className="mb-6 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 p-4 text-white shadow-lg shadow-indigo-100">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="rounded-xl bg-white/20 p-2 backdrop-blur-sm">
-                <RotateCw className="h-5 w-5 animate-spin-slow" />
-              </div>
-              <div>
-                <h2 className="text-sm font-black uppercase tracking-widest">
-                  Lucky Spin
-                </h2>
-                <p className="text-[10px] font-bold text-white/70">
-                  Terminal recording mode
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={removeSpin}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors active:scale-95"
-              >
-                <Minus className="h-4 w-4" />
-              </button>
-              <span className="min-w-[24px] text-center text-xl font-black tabular-nums">
-                {spinQuantity}
-              </span>
-              <button
-                onClick={addSpin}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors active:scale-95"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
-            <div className="flex flex-col">
-              <span className="text-[9px] font-black uppercase tracking-widest text-white/50">
-                Entry Price
-              </span>
-              <span className="text-sm font-black">{SPIN_PRICE}.00 ETB</span>
-            </div>
-            <button
-              onClick={openSpinModal}
-              disabled={spinQuantity === 0}
-              className={cn(
-                "flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-indigo-600 shadow-md transition-all active:scale-95",
-                spinQuantity === 0 &&
-                  "cursor-not-allowed opacity-50 shadow-none",
-              )}
-            >
-              <PenSquare className="h-3.5 w-3.5" />
-              Log Result
-            </button>
           </div>
         </div>
 
@@ -693,7 +849,7 @@ export default function PosPage() {
         </div>
 
         {/* Totals & Tip */}
-        <div className="space-y-4">
+        <div className="space-y-4 mb-4">
           <div className="bento-card p-5 border-none shadow-sm bg-white dark:bg-slate-900">
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -763,20 +919,64 @@ export default function PosPage() {
               </div>
             </div>
           </div>
+        </div>
 
-          <div className="mb-6">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
-              <Wallet className="h-3 w-3" /> Payment Method
-            </p>
-            <div className="flex gap-2">
+        {/* Payment Method */}
+        <div className="mb-6">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+            <Wallet className="h-3 w-3" /> Payment Method
+          </p>
+
+          <div className="bento-card p-5 border-none shadow-sm bg-white dark:bg-slate-900">
+            <div className="flex gap-2 mb-4">
               {[
                 { id: "CASH", label: "Cash", icon: HandCoins },
                 { id: "TELEBIRR", label: "Telebirr", icon: Smartphone },
                 { id: "CBE", label: "CBE", icon: Landmark },
+                { id: "CUSTOM", label: "Custom", icon: Plus },
               ].map((method) => (
                 <button
                   key={method.id}
-                  onClick={() => setPaymentMethod(method.id as any)}
+                  onClick={() => {
+                    // 1. Handle switching AWAY from Custom with entries
+                    if (paymentMethod === "CUSTOM" && method.id !== "CUSTOM") {
+                      const totalAdded =
+                        customPayments.CASH +
+                        customPayments.TELEBIRR +
+                        customPayments.CBE;
+
+                      if (totalAdded > 0) {
+                        if (
+                          confirm("Do you want to clear the custom payments?")
+                        ) {
+                          setCustomPayments({ CASH: 0, TELEBIRR: 0, CBE: 0 });
+                          setPaidAmount(0);
+                        } else {
+                          // Prevent switch if user cancels
+                          return;
+                        }
+                      }
+                    }
+
+                    // 2. Set the method
+                    setPaymentMethod(method.id as any);
+
+                    // 3. Handle opening Custom Modal
+                    if (method.id === "CUSTOM") {
+                      // Always sync temp state with committed state when opening/clicking
+                      setCustomPaymentsTemp(customPayments);
+
+                      const totalAdded =
+                        customPayments.CASH +
+                        customPayments.TELEBIRR +
+                        customPayments.CBE;
+
+                      // Open if switching TO custom OR if staying on custom with 0 values
+                      if (paymentMethod !== "CUSTOM" || totalAdded === 0) {
+                        setIsCustomPaymentOpen(true);
+                      }
+                    }
+                  }}
                   className={cn(
                     "flex-1 flex flex-col items-center gap-2 rounded-xl py-4 border transition-all",
                     paymentMethod === method.id
@@ -791,14 +991,144 @@ export default function PosPage() {
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Payment */}
-          <div className="bento-card p-5 border-none shadow-sm bg-white dark:bg-slate-900">
-            <div className="mb-4">
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
-                <CreditCard className="h-3 w-3" /> Cash Received
-              </label>
+            {paymentMethod === "CUSTOM" &&
+              customPayments.CASH +
+                customPayments.TELEBIRR +
+                customPayments.CBE >
+                0 && (
+                <>
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <span>Total Order</span>
+                      <span className="font-bold text-slate-900 dark:text-white">
+                        {formatMoney(total)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <span>Added Payments</span>
+                      <span className="font-bold text-emerald-600">
+                        {formatMoney(
+                          customPayments.CASH +
+                            customPayments.TELEBIRR +
+                            customPayments.CBE,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-slate-50 pt-3 dark:border-slate-800">
+                      <span className="text-xs font-black uppercase tracking-widest">
+                        {customPayments.CASH +
+                          customPayments.TELEBIRR +
+                          customPayments.CBE >
+                        total
+                          ? "Change Due"
+                          : "Remaining Balance"}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xl font-black tracking-tight",
+                          customPayments.CASH +
+                            customPayments.TELEBIRR +
+                            customPayments.CBE >=
+                            total
+                            ? "text-emerald-600"
+                            : "text-rose-500",
+                        )}
+                      >
+                        {formatMoney(
+                          Math.abs(
+                            total -
+                              (customPayments.CASH +
+                                customPayments.TELEBIRR +
+                                customPayments.CBE),
+                          ),
+                        )}
+                      </span>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mt-2">
+                      <div
+                        className={cn(
+                          "h-full transition-all duration-500",
+                          customPayments.CASH +
+                            customPayments.TELEBIRR +
+                            customPayments.CBE >=
+                            total
+                            ? "bg-emerald-500"
+                            : "bg-indigo-600",
+                        )}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            ((customPayments.CASH +
+                              customPayments.TELEBIRR +
+                              customPayments.CBE) /
+                              (total || 1)) *
+                              100,
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {[
+                    { id: "CASH", label: "Cash", icon: HandCoins },
+                    { id: "TELEBIRR", label: "Telebirr", icon: Smartphone },
+                    { id: "CBE", label: "CBE", icon: Landmark },
+                  ].map((method) => (
+                    <div
+                      key={method.id}
+                      className={cn(
+                        "flex items-center mb-3 rounded-2xl border bg-white p-1 transition-all shadow-sm dark:bg-slate-900 dark:border-slate-800",
+                        "border-slate-100",
+                      )}
+                    >
+                      <p className="flex-3 bg-transparent px-3 py-3 text-sm font-bold outline-none placeholder:text-slate-300 w-full">
+                        {customPayments[
+                          method.id as keyof typeof customPayments
+                        ] || ""}
+                      </p>
+                      <div
+                        className={cn(
+                          "flex-1 rounded-xl py-3 text-xs font-bold transition-all border min-w-[100px] flex items-center justify-center",
+                          customPayments[
+                            method.id as keyof typeof customPayments
+                          ] > 0
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
+                            : "bg-slate-50 text-slate-400 border-slate-100",
+                        )}
+                      >
+                        {method.label}
+                      </div>
+                    </div>
+                  ))}
+                  {/* Edit Payment */}
+                  <div className="flex justify-center">
+                    <button
+                      onClick={() => setIsCustomPaymentOpen(true)}
+                      className="rounded-xl  px-6 py-3 text-[10px] font-black text-slate-600 bg-indigo-600 py-5 text-xs font-black uppercase tracking-widest text-white  transition-all active:scale-[0.98] cursor-pointer"
+                    >
+                      Edit Payment
+                    </button>
+                  </div>
+                </>
+              )}
+          </div>
+        </div>
+
+        {/* Payment */}
+        <div className="bento-card p-5 border-none shadow-sm bg-white dark:bg-slate-900">
+          <div className="mb-4">
+            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+              <CreditCard className="h-3 w-3" /> Cash Received
+            </label>
+            {paymentMethod === "CUSTOM" ? (
+              <p className="w-full rounded-xl border border-slate-100 bg-slate-100 px-4 py-5 text-3xl font-black outline-none focus:border-indigo-600 dark:bg-slate-800/50 dark:border-slate-800">
+                {customPayments.CASH +
+                  customPayments.TELEBIRR +
+                  customPayments.CBE}
+              </p>
+            ) : (
               <input
                 type="number"
                 value={paidAmount || ""}
@@ -806,202 +1136,60 @@ export default function PosPage() {
                 className="w-full rounded-xl border border-slate-100 bg-slate-100 px-4 py-5 text-3xl font-black outline-none focus:border-indigo-600 dark:bg-slate-800/50 dark:border-slate-800"
                 placeholder="0.00"
               />
-            </div>
+            )}
+          </div>
 
-            <div className="flex items-center justify-between rounded-xl bg-indigo-50 px-4 py-3 dark:bg-indigo-900/10 mb-4">
-              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">
-                Give Change
-              </span>
-              <span className="text-xl font-black text-indigo-600 tabular-nums">
-                {formatMoney(change)}
-              </span>
-            </div>
+          <div className="flex items-center justify-between rounded-xl bg-indigo-50 px-4 py-3 dark:bg-indigo-900/10 mb-4">
+            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">
+              Give Change
+            </span>
+            <span className="text-xl font-black text-indigo-600 tabular-nums">
+              {formatMoney(change)}
+            </span>
+          </div>
 
-            <div className="flex gap-2">
-              <button
-                onClick={useChangeAsTip}
-                disabled={change <= 0}
-                className={cn(
-                  "flex-1 flex items-center justify-center gap-2 rounded-xl border py-4 text-[10px] font-black uppercase tracking-widest transition-all",
-                  change > 0
-                    ? "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-sm"
-                    : "border-slate-50 bg-slate-50 text-slate-200 cursor-not-allowed",
-                )}
-              >
-                <Coins className="h-3 w-3" /> Use Change
-              </button>
-              <button
-                onClick={handleCompleteSale}
-                disabled={
-                  processing ||
+          <div className="flex gap-2">
+            <button
+              onClick={useChangeAsTip}
+              disabled={change <= 0}
+              className={cn(
+                "flex-1 flex items-center justify-center gap-2 rounded-xl border py-4 text-[10px] font-black uppercase tracking-widest transition-all",
+                change > 0
+                  ? "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-sm"
+                  : "border-slate-50 bg-slate-50 text-slate-200 cursor-not-allowed",
+              )}
+            >
+              <Coins className="h-3 w-3" /> Use Change
+            </button>
+            <button
+              onClick={handleCompleteSale}
+              disabled={
+                processing ||
+                (cart.length === 0 &&
+                  spinQuantity === 0 &&
+                  spinResults.length === 0 &&
+                  tipAmount <= 0)
+              }
+              className={cn(
+                "flex-[1.8] flex items-center justify-center gap-2 rounded-xl py-4 text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-indigo-100",
+                processing ||
                   (cart.length === 0 &&
                     spinQuantity === 0 &&
-                    spinResults.length === 0)
-                }
-                className={cn(
-                  "flex-[1.8] flex items-center justify-center gap-2 rounded-xl py-4 text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-indigo-100",
-                  processing ||
-                    (cart.length === 0 &&
-                      spinQuantity === 0 &&
-                      spinResults.length === 0)
-                    ? "bg-slate-100 text-slate-300 dark:bg-slate-800"
-                    : "bg-indigo-600 text-white hover:bg-indigo-700",
-                )}
-              >
-                {processing ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <CheckCircle className="h-4 w-4" />
-                )}
-                Complete Sale
-              </button>
-            </div>
+                    spinResults.length === 0 &&
+                    tipAmount <= 0)
+                  ? "bg-slate-100 text-slate-300 dark:bg-slate-800"
+                  : "bg-indigo-600 text-white hover:bg-indigo-700",
+              )}
+            >
+              {processing ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <CheckCircle className="h-4 w-4" />
+              )}
+              Complete Sale
+            </button>
           </div>
         </div>
-
-        {/* Spin Result Modal */}
-        {isSpinModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
-            <div
-              ref={modalRef}
-              className="w-full max-w-md rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl animate-in zoom-in-95 duration-200"
-            >
-              <div className="mb-6 flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                    Spin Result
-                  </h3>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                    Capture the prize outcome
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsSpinModalOpen(false)}
-                  className="rounded-full bg-slate-50 p-2 text-slate-400 hover:bg-slate-100"
-                >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <div className="mb-6 space-y-3">
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Win Category
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => setSelectedPrizeType("item")}
-                    className={cn(
-                      "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
-                      selectedPrizeType === "item"
-                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
-                        : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
-                    )}
-                  >
-                    <Gift className="h-5 w-5" />
-                    <span className="text-[10px] font-black uppercase">
-                      Item
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedPrizeType("thankyou")}
-                    className={cn(
-                      "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
-                      selectedPrizeType === "thankyou"
-                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
-                        : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
-                    )}
-                  >
-                    <Sparkles className="h-5 w-5" />
-                    <span className="text-[10px] font-black uppercase">
-                      Thanks
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => setSelectedPrizeType("discount")}
-                    className={cn(
-                      "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
-                      selectedPrizeType === "discount"
-                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
-                        : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
-                    )}
-                  >
-                    <Coins className="h-5 w-5" />
-                    <span className="text-[10px] font-black uppercase">
-                      Coins
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {selectedPrizeType === "item" && (
-                <div className="mb-8">
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                    Select Won Item
-                  </label>
-                  <select
-                    value={selectedItemId}
-                    onChange={(e) => setSelectedItemId(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                  >
-                    <option value="">Search Inventory...</option>
-                    {items.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name} (Stock: {item.stock})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              {selectedPrizeType === "thankyou" && (
-                <div className="mb-8">
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                    Message (Optional)
-                  </label>
-                  <input
-                    type="text"
-                    value={customMessage}
-                    onChange={(e) => setCustomMessage(e.target.value)}
-                    placeholder="Better luck next time!"
-                    className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                  />
-                </div>
-              )}
-
-              {selectedPrizeType === "discount" && (
-                <div className="mb-8">
-                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                    Coins Amount (ETB)
-                  </label>
-                  <input
-                    type="number"
-                    value={discountAmount}
-                    onChange={(e) =>
-                      setDiscountAmount(parseFloat(e.target.value) || 0)
-                    }
-                    placeholder="e.g., 20"
-                    className="w-full rounded-xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xl font-black outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-                  />
-                </div>
-              )}
-
-              <div className="flex flex-col gap-3">
-                <button
-                  onClick={saveSpinResult}
-                  className="w-full rounded-2xl bg-indigo-600 py-5 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]"
-                >
-                  Record Result
-                </button>
-                <button
-                  onClick={() => setIsSpinModalOpen(false)}
-                  className="w-full rounded-2xl bg-slate-50 dark:bg-slate-800 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Success Toast / Modal */}
         {lastTransaction && (
@@ -1050,7 +1238,185 @@ export default function PosPage() {
             </div>
           </div>
         )}
+        {/* Toast Notification */}
+        {toast && (
+          <div className="fixed bottom-6 left-1/2 z-[100] w-full max-w-xs -translate-x-1/2 px-4 animate-in slide-in-from-bottom-5 duration-300">
+            <div
+              className={cn(
+                "flex items-center gap-3 rounded-2xl p-4 shadow-2xl border backdrop-blur-md",
+                toast.type === "success"
+                  ? "bg-emerald-500/90 border-emerald-400 text-white"
+                  : toast.type === "error"
+                    ? "bg-rose-500/90 border-rose-400 text-white"
+                    : "bg-indigo-600/90 border-indigo-500 text-white",
+              )}
+            >
+              {toast.type === "success" ? (
+                <CheckCircle className="h-5 w-5 shrink-0" />
+              ) : toast.type === "error" ? (
+                <X className="h-5 w-5 shrink-0" />
+              ) : (
+                <Sparkles className="h-5 w-5 shrink-0" />
+              )}
+              <p className="text-xs font-black uppercase tracking-widest">
+                {toast.message}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
+      {isCustomPaymentOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div
+            ref={modalRef}
+            className="w-full max-w-md rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl animate-in zoom-in-95 duration-200"
+          >
+            <button
+              onClick={() => {
+                setIsCustomPaymentOpen(false);
+                // Only fallback to CASH if no custom payments were actually set
+                const totalSet =
+                  customPayments.CASH +
+                  customPayments.TELEBIRR +
+                  customPayments.CBE;
+                if (totalSet === 0) {
+                  setPaymentMethod("CASH");
+                }
+              }}
+              className="rounded-full bg-slate-50 p-2 text-slate-400 hover:bg-slate-100"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="bento-card p-5 border-none shadow-sm bg-white dark:bg-slate-900">
+                  <div className="space-y-2 mb-4">
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <span>Total Order</span>
+                      <span className="font-bold text-slate-900 dark:text-white">
+                        {formatMoney(total)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <span>Added Payments</span>
+                      <span className="font-bold text-emerald-600">
+                        {formatMoney(
+                          customPaymentsTemp.CASH +
+                            customPaymentsTemp.TELEBIRR +
+                            customPaymentsTemp.CBE,
+                        )}
+                      </span>
+                    </div>
+                    <div className="flex justify-between border-t border-slate-50 pt-3 dark:border-slate-800">
+                      <span className="text-xs font-black uppercase tracking-widest">
+                        {customPaymentsTemp.CASH +
+                          customPaymentsTemp.TELEBIRR +
+                          customPaymentsTemp.CBE >
+                        total
+                          ? "Change Due"
+                          : "Remaining Balance"}
+                      </span>
+                      <span
+                        className={cn(
+                          "text-xl font-black tracking-tight",
+                          customPaymentsTemp.CASH +
+                            customPaymentsTemp.TELEBIRR +
+                            customPaymentsTemp.CBE >=
+                            total
+                            ? "text-emerald-600"
+                            : "text-rose-500",
+                        )}
+                      >
+                        {formatMoney(
+                          Math.abs(
+                            total -
+                              (customPaymentsTemp.CASH +
+                                customPaymentsTemp.TELEBIRR +
+                                customPaymentsTemp.CBE),
+                          ),
+                        )}
+                      </span>
+                    </div>
+                    {/* Progress Bar */}
+                    <div className="h-1.5 w-full rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mt-2">
+                      <div
+                        className={cn(
+                          "h-full transition-all duration-500",
+                          customPaymentsTemp.CASH +
+                            customPaymentsTemp.TELEBIRR +
+                            customPaymentsTemp.CBE >=
+                            total
+                            ? "bg-emerald-500"
+                            : "bg-indigo-600",
+                        )}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            ((customPaymentsTemp.CASH +
+                              customPaymentsTemp.TELEBIRR +
+                              customPaymentsTemp.CBE) /
+                              (total || 1)) *
+                              100,
+                          )}%`,
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {[
+                    { id: "CASH", label: "Cash", icon: HandCoins },
+                    { id: "TELEBIRR", label: "Telebirr", icon: Smartphone },
+                    { id: "CBE", label: "CBE", icon: Landmark },
+                  ].map((method) => (
+                    <div
+                      key={method.id}
+                      className={cn(
+                        "flex items-center mb-3 rounded-2xl border bg-white p-1 transition-all shadow-sm dark:bg-slate-900 dark:border-slate-800",
+                        "border-slate-100",
+                      )}
+                    >
+                      <input
+                        type="number"
+                        placeholder="Enter Amount"
+                        value={
+                          customPaymentsTemp[
+                            method.id as keyof typeof customPaymentsTemp
+                          ] || ""
+                        }
+                        onChange={(e) =>
+                          setCustomPaymentsTemp((prev) => ({
+                            ...prev,
+                            [method.id]: parseFloat(e.target.value) || 0,
+                          }))
+                        }
+                        className="flex-3 bg-transparent px-3 py-3 text-sm font-bold outline-none placeholder:text-slate-300 w-full"
+                      />
+                      <div
+                        className={cn(
+                          "flex-1 rounded-xl py-3 text-xs font-bold transition-all border min-w-[100px] flex items-center justify-center",
+                          customPaymentsTemp[
+                            method.id as keyof typeof customPaymentsTemp
+                          ] > 0
+                            ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
+                            : "bg-slate-50 text-slate-400 border-slate-100",
+                        )}
+                      >
+                        {method.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => validateCustomPayment()}
+              className="rounded-xl  px-6 py-3 text-[10px] font-black text-slate-600 bg-indigo-600 py-5 text-xs font-black uppercase tracking-widest text-white  transition-all active:scale-[0.98] cursor-pointer"
+            >
+              Set Payment
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

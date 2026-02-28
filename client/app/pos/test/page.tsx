@@ -66,7 +66,7 @@ export default function PosPage() {
   const [tipAmount, setTipAmount] = useState<number>(0);
   const [paidAmount, setPaidAmount] = useState<number>(0);
   const [paymentMethod, setPaymentMethod] = useState<
-    "CASH" | "TELEBIRR" | "CBE" | "CUSTOM"
+    "CASH" | "TELEBIRR" | "CBE"
   >("CASH");
   const [customTip, setCustomTip] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -76,6 +76,7 @@ export default function PosPage() {
   const [lastTransaction, setLastTransaction] = useState<any>(null);
 
   // Modal state for recording spin results
+  const [isSpinModalOpen, setIsSpinModalOpen] = useState<boolean>(false);
   const [selectedPrizeType, setSelectedPrizeType] = useState<
     "item" | "thankyou" | "discount"
   >("item");
@@ -203,13 +204,14 @@ export default function PosPage() {
     setSelectedItemId("");
     setCustomMessage("");
     setDiscountAmount(0);
+    setIsSpinModalOpen(true);
   };
 
   // Save spin result from modal
   const saveSpinResult = () => {
-    let result: SpinResult;
+    if (spinQuantity === 0) return;
 
-    console.log(selectedPrizeType);
+    let result: SpinResult;
 
     if (selectedPrizeType === "item") {
       if (!selectedItemId) {
@@ -233,9 +235,20 @@ export default function PosPage() {
         message: customMessage || "Thanks for playing!",
         timestamp: new Date(),
       };
+    } else {
+      // discount
+      result = {
+        id: Date.now().toString() + Math.random(),
+        type: "discount",
+        discountAmount: discountAmount || 10,
+        message: `${discountAmount || 10} ETB discount on next purchase`,
+        timestamp: new Date(),
+      };
     }
 
     setSpinResults((prev) => [result, ...prev]);
+    setSpinQuantity((prev) => prev - 1);
+    setIsSpinModalOpen(false);
   };
 
   const deleteSpinResult = (id: string) => {
@@ -480,6 +493,63 @@ export default function PosPage() {
           </div>
         </div>
 
+        {/* Spin Card */}
+        <div className="mb-6 rounded-2xl bg-gradient-to-r from-purple-500 to-indigo-600 p-4 text-white shadow-lg shadow-indigo-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="rounded-xl bg-white/20 p-2 backdrop-blur-sm">
+                <RotateCw className="h-5 w-5 animate-spin-slow" />
+              </div>
+              <div>
+                <h2 className="text-sm font-black uppercase tracking-widest">
+                  Lucky Spin
+                </h2>
+                <p className="text-[10px] font-bold text-white/70">
+                  Terminal recording mode
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={removeSpin}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors active:scale-95"
+              >
+                <Minus className="h-4 w-4" />
+              </button>
+              <span className="min-w-[24px] text-center text-xl font-black tabular-nums">
+                {spinQuantity}
+              </span>
+              <button
+                onClick={addSpin}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm hover:bg-white/30 transition-colors active:scale-95"
+              >
+                <Plus className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 flex items-center justify-between border-t border-white/10 pt-4">
+            <div className="flex flex-col">
+              <span className="text-[9px] font-black uppercase tracking-widest text-white/50">
+                Entry Price
+              </span>
+              <span className="text-sm font-black">{SPIN_PRICE}.00 ETB</span>
+            </div>
+            <button
+              onClick={openSpinModal}
+              disabled={spinQuantity === 0}
+              className={cn(
+                "flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-indigo-600 shadow-md transition-all active:scale-95",
+                spinQuantity === 0 &&
+                  "cursor-not-allowed opacity-50 shadow-none",
+              )}
+            >
+              <PenSquare className="h-3.5 w-3.5" />
+              Log Result
+            </button>
+          </div>
+        </div>
+
         {/* Order Sheet */}
         <div className="bento-card mb-4 p-5 border-none shadow-sm bg-white dark:bg-slate-900">
           <div className="mb-4 flex items-center justify-between">
@@ -622,107 +692,8 @@ export default function PosPage() {
           )}
         </div>
 
-        {/* Spin Result Modal */}
-        <div
-          ref={modalRef}
-          className="w-full max-w-md mb-4 rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl animate-in zoom-in-95 duration-200"
-        >
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                Spin Result
-              </h3>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                Capture the prize outcome
-              </p>
-            </div>
-          </div>
-
-          <div className="mb-6 space-y-3">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              Win Category
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setSelectedPrizeType("item")}
-                className={cn(
-                  "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
-                  selectedPrizeType === "item"
-                    ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
-                    : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
-                )}
-              >
-                <Gift className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase">Item</span>
-              </button>
-              <button
-                onClick={() => setSelectedPrizeType("thankyou")}
-                className={cn(
-                  "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
-                  selectedPrizeType === "thankyou"
-                    ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
-                    : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
-                )}
-              >
-                <Sparkles className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase">Thanks</span>
-              </button>
-            </div>
-          </div>
-
-          {selectedPrizeType === "item" && (
-            <div className="mb-8">
-              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                Select Won Item
-              </label>
-              <select
-                value={selectedItemId}
-                onChange={(e) => setSelectedItemId(e.target.value)}
-                className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-              >
-                <option value="">Search Inventory...</option>
-                {items.map((item) => (
-                  <option key={item.id} value={item.id}>
-                    {item.name} (Stock: {item.stock})
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {selectedPrizeType === "thankyou" && (
-            <div className="mb-8">
-              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                Message (Optional)
-              </label>
-              <input
-                type="text"
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                placeholder="Better luck next time!"
-                className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-              />
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={saveSpinResult}
-              className={cn(
-                "w-full rounded-2xl",
-                selectedPrizeType === "item" && !selectedItemId
-                  ? " bg-slate-50 dark:bg-slate-800 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  : "bg-indigo-600 py-5 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]",
-              )}
-              disabled={selectedPrizeType === "item" && !selectedItemId}
-            >
-              Record Result
-            </button>
-          </div>
-        </div>
-
         {/* Totals & Tip */}
-        <div className="space-y-4 mb-4">
+        <div className="space-y-4">
           <div className="bento-card p-5 border-none shadow-sm bg-white dark:bg-slate-900">
             <div className="space-y-2 mb-4">
               <div className="flex justify-between text-[10px] font-black uppercase tracking-widest text-slate-400">
@@ -792,103 +763,240 @@ export default function PosPage() {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Payment Method */}
-        <div className="mb-6">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
-            <Wallet className="h-3 w-3" /> Payment Method
-          </p>
-          <div className="flex gap-2">
-            {[
-              { id: "CASH", label: "Cash", icon: HandCoins },
-              { id: "TELEBIRR", label: "Telebirr", icon: Smartphone },
-              { id: "CBE", label: "CBE", icon: Landmark },
-              { id: "CUSTOM", label: "Custom", icon: Plus },
-            ].map((method) => (
+          <div className="mb-6">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+              <Wallet className="h-3 w-3" /> Payment Method
+            </p>
+            <div className="flex gap-2">
+              {[
+                { id: "CASH", label: "Cash", icon: HandCoins },
+                { id: "TELEBIRR", label: "Telebirr", icon: Smartphone },
+                { id: "CBE", label: "CBE", icon: Landmark },
+              ].map((method) => (
+                <button
+                  key={method.id}
+                  onClick={() => setPaymentMethod(method.id as any)}
+                  className={cn(
+                    "flex-1 flex flex-col items-center gap-2 rounded-xl py-4 border transition-all",
+                    paymentMethod === method.id
+                      ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
+                      : "bg-white text-slate-400 border-slate-100 hover:border-indigo-100 dark:bg-slate-800 dark:border-slate-800",
+                  )}
+                >
+                  <method.icon className="h-5 w-5" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    {method.label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Payment */}
+          <div className="bento-card p-5 border-none shadow-sm bg-white dark:bg-slate-900">
+            <div className="mb-4">
+              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+                <CreditCard className="h-3 w-3" /> Cash Received
+              </label>
+              <input
+                type="number"
+                value={paidAmount || ""}
+                onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
+                className="w-full rounded-xl border border-slate-100 bg-slate-100 px-4 py-5 text-3xl font-black outline-none focus:border-indigo-600 dark:bg-slate-800/50 dark:border-slate-800"
+                placeholder="0.00"
+              />
+            </div>
+
+            <div className="flex items-center justify-between rounded-xl bg-indigo-50 px-4 py-3 dark:bg-indigo-900/10 mb-4">
+              <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">
+                Give Change
+              </span>
+              <span className="text-xl font-black text-indigo-600 tabular-nums">
+                {formatMoney(change)}
+              </span>
+            </div>
+
+            <div className="flex gap-2">
               <button
-                key={method.id}
-                onClick={() => setPaymentMethod(method.id as any)}
+                onClick={useChangeAsTip}
+                disabled={change <= 0}
                 className={cn(
-                  "flex-1 flex flex-col items-center gap-2 rounded-xl py-4 border transition-all",
-                  paymentMethod === method.id
-                    ? "bg-indigo-600 text-white border-indigo-600 shadow-md"
-                    : "bg-white text-slate-400 border-slate-100 hover:border-indigo-100 dark:bg-slate-800 dark:border-slate-800",
+                  "flex-1 flex items-center justify-center gap-2 rounded-xl border py-4 text-[10px] font-black uppercase tracking-widest transition-all",
+                  change > 0
+                    ? "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-sm"
+                    : "border-slate-50 bg-slate-50 text-slate-200 cursor-not-allowed",
                 )}
               >
-                <method.icon className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase tracking-widest">
-                  {method.label}
-                </span>
+                <Coins className="h-3 w-3" /> Use Change
               </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Payment */}
-        <div className="bento-card p-5 border-none shadow-sm bg-white dark:bg-slate-900">
-          <div className="mb-4">
-            <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
-              <CreditCard className="h-3 w-3" /> Cash Received
-            </label>
-            <input
-              type="number"
-              value={paidAmount || ""}
-              onChange={(e) => setPaidAmount(parseFloat(e.target.value) || 0)}
-              className="w-full rounded-xl border border-slate-100 bg-slate-100 px-4 py-5 text-3xl font-black outline-none focus:border-indigo-600 dark:bg-slate-800/50 dark:border-slate-800"
-              placeholder="0.00"
-            />
-          </div>
-
-          <div className="flex items-center justify-between rounded-xl bg-indigo-50 px-4 py-3 dark:bg-indigo-900/10 mb-4">
-            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600">
-              Give Change
-            </span>
-            <span className="text-xl font-black text-indigo-600 tabular-nums">
-              {formatMoney(change)}
-            </span>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={useChangeAsTip}
-              disabled={change <= 0}
-              className={cn(
-                "flex-1 flex items-center justify-center gap-2 rounded-xl border py-4 text-[10px] font-black uppercase tracking-widest transition-all",
-                change > 0
-                  ? "border-amber-200 bg-amber-50 text-amber-600 hover:bg-amber-100 shadow-sm"
-                  : "border-slate-50 bg-slate-50 text-slate-200 cursor-not-allowed",
-              )}
-            >
-              <Coins className="h-3 w-3" /> Use Change
-            </button>
-            <button
-              onClick={handleCompleteSale}
-              disabled={
-                processing ||
-                (cart.length === 0 &&
-                  spinQuantity === 0 &&
-                  spinResults.length === 0)
-              }
-              className={cn(
-                "flex-[1.8] flex items-center justify-center gap-2 rounded-xl py-4 text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-indigo-100",
-                processing ||
+              <button
+                onClick={handleCompleteSale}
+                disabled={
+                  processing ||
                   (cart.length === 0 &&
                     spinQuantity === 0 &&
                     spinResults.length === 0)
-                  ? "bg-slate-100 text-slate-300 dark:bg-slate-800"
-                  : "bg-indigo-600 text-white hover:bg-indigo-700",
-              )}
-            >
-              {processing ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <CheckCircle className="h-4 w-4" />
-              )}
-              Complete Sale
-            </button>
+                }
+                className={cn(
+                  "flex-[1.8] flex items-center justify-center gap-2 rounded-xl py-4 text-xs font-black uppercase tracking-widest transition-all active:scale-[0.98] shadow-lg shadow-indigo-100",
+                  processing ||
+                    (cart.length === 0 &&
+                      spinQuantity === 0 &&
+                      spinResults.length === 0)
+                    ? "bg-slate-100 text-slate-300 dark:bg-slate-800"
+                    : "bg-indigo-600 text-white hover:bg-indigo-700",
+                )}
+              >
+                {processing ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <CheckCircle className="h-4 w-4" />
+                )}
+                Complete Sale
+              </button>
+            </div>
           </div>
         </div>
+
+        {/* Spin Result Modal */}
+        {isSpinModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+            <div
+              ref={modalRef}
+              className="w-full max-w-md rounded-[2.5rem] bg-white dark:bg-slate-900 p-8 shadow-2xl animate-in zoom-in-95 duration-200"
+            >
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
+                    Spin Result
+                  </h3>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                    Capture the prize outcome
+                  </p>
+                </div>
+                
+              </div>
+
+              <div className="mb-6 space-y-3">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  Win Category
+                </p>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setSelectedPrizeType("item")}
+                    className={cn(
+                      "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
+                      selectedPrizeType === "item"
+                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
+                        : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
+                    )}
+                  >
+                    <Gift className="h-5 w-5" />
+                    <span className="text-[10px] font-black uppercase">
+                      Item
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedPrizeType("thankyou")}
+                    className={cn(
+                      "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
+                      selectedPrizeType === "thankyou"
+                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
+                        : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
+                    )}
+                  >
+                    <Sparkles className="h-5 w-5" />
+                    <span className="text-[10px] font-black uppercase">
+                      Thanks
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => setSelectedPrizeType("discount")}
+                    className={cn(
+                      "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
+                      selectedPrizeType === "discount"
+                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
+                        : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
+                    )}
+                  >
+                    <Coins className="h-5 w-5" />
+                    <span className="text-[10px] font-black uppercase">
+                      Coins
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              {selectedPrizeType === "item" && (
+                <div className="mb-8">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                    Select Won Item
+                  </label>
+                  <select
+                    value={selectedItemId}
+                    onChange={(e) => setSelectedItemId(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
+                  >
+                    <option value="">Search Inventory...</option>
+                    {items.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name} (Stock: {item.stock})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {selectedPrizeType === "thankyou" && (
+                <div className="mb-8">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                    Message (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    placeholder="Better luck next time!"
+                    className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
+                  />
+                </div>
+              )}
+
+              {selectedPrizeType === "discount" && (
+                <div className="mb-8">
+                  <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
+                    Coins Amount (ETB)
+                  </label>
+                  <input
+                    type="number"
+                    value={discountAmount}
+                    onChange={(e) =>
+                      setDiscountAmount(parseFloat(e.target.value) || 0)
+                    }
+                    placeholder="e.g., 20"
+                    className="w-full rounded-xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xl font-black outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
+                  />
+                </div>
+              )}
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={saveSpinResult}
+                  className="w-full rounded-2xl bg-indigo-600 py-5 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]"
+                >
+                  Record Result
+                </button>
+                <button
+                  onClick={() => setIsSpinModalOpen(false)}
+                  className="w-full rounded-2xl bg-slate-50 dark:bg-slate-800 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Success Toast / Modal */}
         {lastTransaction && (

@@ -31,6 +31,7 @@ export default function InventoryPage() {
     price: "",
     description: "",
     initialQuantity: "0",
+    totalStock: "0",
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,6 +59,10 @@ export default function InventoryPage() {
         price: item.prices?.[0]?.price.toString() || "",
         description: item.description || "",
         initialQuantity: "0",
+        totalStock: (item.totalStock !== undefined
+          ? item.totalStock
+          : 0
+        ).toString(),
       });
     } else {
       setEditingItem(null);
@@ -67,6 +72,7 @@ export default function InventoryPage() {
         price: "",
         description: "",
         initialQuantity: "0",
+        totalStock: "0",
       });
     }
     setIsModalOpen(true);
@@ -103,6 +109,17 @@ export default function InventoryPage() {
           await api.post("/prices", {
             itemId: itemId,
             price: Number(formData.price),
+          });
+        }
+
+        // Set total stock if provided and changed
+        if (
+          editingItem &&
+          formData.totalStock !== undefined &&
+          Number(formData.totalStock) !== editingItem.totalStock
+        ) {
+          await api.post(`/items/${itemId}/set-stock`, {
+            quantity: Number(formData.totalStock),
           });
         }
       }
@@ -337,7 +354,30 @@ export default function InventoryPage() {
                 </div>
               </div>
 
-              {!editingItem && (
+              {editingItem ? (
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                    Current Stock Level
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={formData.totalStock}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          totalStock: e.target.value,
+                        })
+                      }
+                      placeholder="0"
+                      className="flex-1 rounded-2xl border border-slate-100 bg-slate-50/50 p-4 text-sm font-black tabular-nums outline-none focus:ring-4 focus:ring-indigo-600/5 focus:border-indigo-600 transition-all dark:bg-white/5 dark:border-slate-800"
+                    />
+                    <div className="flex items-center px-4 rounded-2xl bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-slate-800 text-[10px] font-black uppercase text-slate-400">
+                      Unit(s)
+                    </div>
+                  </div>
+                </div>
+              ) : (
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
                     Initial Stock Quantity

@@ -62,20 +62,23 @@ export default function ReportsPage() {
   const [summary, setSummary] = useState<DailySummary | null>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(
+  const [fromDate, setFromDate] = useState(
     new Date().toISOString().split("T")[0],
   );
+  const [toDate, setToDate] = useState(new Date().toISOString().split("T")[0]);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isRangeMode, setIsRangeMode] = useState(false);
 
   useEffect(() => {
     fetchData();
-  }, [selectedDate]);
+  }, [fromDate, toDate, isRangeMode]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
+      const actualToDate = isRangeMode ? toDate : fromDate;
       const [summaryRes, salesRes] = await Promise.all([
-        api.get(`/reports/daily?date=${selectedDate}`),
+        api.get(`/reports/summary?from=${fromDate}&to=${actualToDate}`),
         api.get("/sales"), // We might want a date filter for sales too eventually
       ]);
       setSummary(summaryRes.data);
@@ -100,9 +103,12 @@ export default function ReportsPage() {
   };
 
   const adjustDate = (days: number) => {
-    const date = new Date(selectedDate);
+    const date = new Date(fromDate);
     date.setDate(date.getDate() + days);
-    setSelectedDate(date.toISOString().split("T")[0]);
+    setFromDate(date.toISOString().split("T")[0]);
+    if (!isRangeMode) {
+      setToDate(date.toISOString().split("T")[0]);
+    }
   };
 
   return (
@@ -132,38 +138,63 @@ export default function ReportsPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 rounded-2xl bg-white p-1 border border-slate-100 shadow-sm dark:bg-slate-900 dark:border-slate-800 flex-1">
-              <button
-                onClick={() => adjustDate(-1)}
-                className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400"
-              >
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <div className="flex flex-1 items-center justify-center gap-2 text-xs font-black uppercase tracking-widest">
-                <CalendarIcon className="h-3 w-3 text-indigo-600" />
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-transparent text-center outline-none cursor-pointer"
-                />
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 rounded-2xl bg-white p-1 border border-slate-100 shadow-sm dark:bg-slate-900 dark:border-slate-800 flex-1">
+                <button
+                  onClick={() => adjustDate(-1)}
+                  className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+                <div className="flex flex-1 items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest">
+                  <CalendarIcon className="h-3 w-3 text-indigo-600" />
+                  <input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => setFromDate(e.target.value)}
+                    className="bg-transparent text-center outline-none cursor-pointer"
+                  />
+                  {isRangeMode && (
+                    <>
+                      <span className="mx-1 text-slate-300">to</span>
+                      <input
+                        type="date"
+                        value={toDate}
+                        onChange={(e) => setToDate(e.target.value)}
+                        className="bg-transparent text-center outline-none cursor-pointer"
+                      />
+                    </>
+                  )}
+                </div>
+                <button
+                  onClick={() => adjustDate(1)}
+                  className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
               </div>
               <button
-                onClick={() => adjustDate(1)}
-                className="p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-400"
+                onClick={() => setIsPreviewOpen(true)}
+                className="flex items-center gap-2 px-6 rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 dark:shadow-none dark:bg-indigo-600 h-12"
               >
-                <ChevronRight className="h-4 w-4" />
+                <Printer className="h-4 w-4" />
+                <span className="text-[10px] font-black uppercase tracking-widest">
+                  Print
+                </span>
               </button>
             </div>
+
             <button
-              onClick={() => setIsPreviewOpen(true)}
-              className="flex items-center gap-2 px-6 rounded-2xl bg-slate-900 text-white shadow-xl shadow-slate-200 hover:bg-black transition-all active:scale-95 dark:shadow-none dark:bg-indigo-600 h-12"
+              onClick={() => setIsRangeMode(!isRangeMode)}
+              className={cn(
+                "w-full py-2.5 rounded-xl border text-[9px] font-black uppercase tracking-[0.2em] transition-all",
+                isRangeMode
+                  ? "bg-indigo-600 border-indigo-600 text-white"
+                  : "bg-white border-slate-100 text-slate-400 dark:bg-slate-900 dark:border-slate-800",
+              )}
             >
-              <Printer className="h-4 w-4" />
-              <span className="text-[10px] font-black uppercase tracking-widest">
-                Reconcile
-              </span>
+              {isRangeMode ? "Switch to Single Day" : "Enable Multi-Day Range"}
             </button>
           </div>
         </header>
@@ -174,10 +205,14 @@ export default function ReportsPage() {
             Limat Terminal Report
           </h1>
           <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-            Daily Summary ·{" "}
-            {new Date(selectedDate).toLocaleDateString("en-US", {
-              dateStyle: "full",
+            {isRangeMode ? "Custom Range Summary" : "Daily Summary"} ·{" "}
+            {new Date(fromDate).toLocaleDateString("en-US", {
+              dateStyle: isRangeMode ? "medium" : "full",
             })}
+            {isRangeMode &&
+              ` — ${new Date(toDate).toLocaleDateString("en-US", {
+                dateStyle: "medium",
+              })}`}
           </p>
         </div>
 
@@ -404,7 +439,9 @@ export default function ReportsPage() {
                   Reconcile Preview
                 </h3>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Daily Closing · {new Date(selectedDate).toLocaleDateString()}
+                  {isRangeMode ? "Period Closing" : "Daily Closing"} ·{" "}
+                  {new Date(fromDate).toLocaleDateString()}
+                  {isRangeMode && ` - ${new Date(toDate).toLocaleDateString()}`}
                 </p>
               </div>
               <button
@@ -618,7 +655,8 @@ export default function ReportsPage() {
               Daily Reconciliation Report
             </p>
             <p className="text-[10px] font-black mt-2">
-              Date: {new Date(selectedDate).toLocaleDateString()}
+              From: {new Date(fromDate).toLocaleDateString()}
+              {isRangeMode && ` To: ${new Date(toDate).toLocaleDateString()}`}
             </p>
           </div>
 
