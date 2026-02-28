@@ -32,4 +32,9 @@ export class ItemsController {
   remove(@Param('id') id: string) {
     return this.itemsService.remove(+id);
   }
+
+  @Post(':id/set-stock')
+  setStock(@Param('id') id: string, @Body('quantity') quantity: number) {
+    return this.itemsService.setStockLevel(+id, quantity);
+  }
 }

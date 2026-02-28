@@ -11,10 +11,9 @@ export class SalesController {
   @Post()
   createSale(
     @Req() req,
-    @Body() data: { items: { itemId: number; quantity: number }[]; tipAmount?: number; paymentMethod?: PaymentMethod }
+    @Body() data: { items: { itemId: number; quantity: number }[]; tipAmount?: number; paymentMethod?: PaymentMethod; splitPayments?: any }
   ) {
-    console.log('[SalesController] POST /sales', { user: req.user, body: data });
-    return this.salesService.createSale(req.user.id, data.items, data.tipAmount, data.paymentMethod);
+    return this.salesService.createSale(req.user.id, data.items, data.tipAmount, data.paymentMethod, data.splitPayments);
   }
 
   @Post('spin')

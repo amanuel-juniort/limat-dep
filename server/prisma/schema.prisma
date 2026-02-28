@@ -69,19 +69,21 @@ enum PaymentMethod {
   CASH
   TELEBIRR
   CBE
+  CUSTOM
 }
 
 model Transactions {
-  id            Int             @id @default(autoincrement())
-  type          TransactionType
-  subtotal      Decimal         @db.Decimal(12, 2)
-  tipAmount     Decimal?        @db.Decimal(12, 2)
-  totalAmount   Decimal         @db.Decimal(12, 2)
-  paymentMethod PaymentMethod   @default(CASH)
-  userId        Int
-  user          User            @relation(fields: [userId], references: [id])
-  createdAt     DateTime        @default(now())
-  spinResult    String? // "Thanks" or Item Name/ID info
+  id             Int             @id @default(autoincrement())
+  type           TransactionType
+  subtotal       Decimal         @db.Decimal(12, 2)
+  tipAmount      Decimal?        @db.Decimal(12, 2)
+  totalAmount    Decimal         @db.Decimal(12, 2)
+  paymentMethod  PaymentMethod   @default(CASH)
+  userId         Int
+  user           User            @relation(fields: [userId], references: [id])
+  createdAt      DateTime        @default(now())
+  paymentDetails Json? // For split payments/custom details
+  spinResult     String? // "Thanks" or Item Name/ID info
 
   items TransactionItems[]
 

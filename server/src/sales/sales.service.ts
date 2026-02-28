@@ -17,8 +17,8 @@ export class SalesService {
     items: { itemId: number; quantity: number }[],
     tipAmount?: number,
     paymentMethod: PaymentMethod = PaymentMethod.CASH,
+    paymentDetails?: any,
   ): Promise<Transactions> {
-    console.log(`[SalesService] Creating sale for user ${userId}`, { items, tipAmount });
     
     if (!userId) {
       console.error('[SalesService] Error: userId is undefined. Check JwtStrategy matching.');
@@ -56,6 +56,7 @@ export class SalesService {
             tipAmount: tipAmount ? new Prisma.Decimal(tipAmount) : null,
             totalAmount: new Prisma.Decimal(totalAmount),
             paymentMethod,
+            paymentDetails: paymentDetails || null,
             userId,
             items: {
               create: transactionItemsData,

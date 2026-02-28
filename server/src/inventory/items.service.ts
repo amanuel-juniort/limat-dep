@@ -112,4 +112,24 @@ export class ItemsService {
       data: { isActive: false },
     });
   }
+
+  async setStockLevel(id: number, targetQuantity: number): Promise<any> {
+    const stockAgg = await this.prisma.inventoryMovements.aggregate({
+      where: { itemId: id },
+      _sum: { quantityChange: true },
+    });
+    
+    const currentStock = stockAgg._sum.quantityChange || 0;
+    const delta = targetQuantity - currentStock;
+
+    if (delta === 0) return { message: 'No change required' };
+
+    return this.prisma.inventoryMovements.create({
+      data: {
+        itemId: id,
+        type: MovementType.ADJUSTMENT,
+        quantityChange: delta,
+      },
+    });
+  }
 }

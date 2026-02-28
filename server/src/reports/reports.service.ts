@@ -12,16 +12,17 @@ export class ReportsService {
     private stockService: StockService,
   ) {}
 
-  async getDailySummary(date: Date = new Date()) {
-    const d = new Date(date);
-    const startOfDay = new Date(d.setHours(0, 0, 0, 0));
-    const endOfDay = new Date(d.setHours(23, 59, 59, 999));
+  async getSummary(startDate: Date, endDate: Date) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
 
     const transactions = await this.prisma.transactions.findMany({
       where: {
         createdAt: {
-          gte: startOfDay,
-          lte: endOfDay,
+          gte: start,
+          lte: end,
         },
       },
     });
@@ -39,40 +40,41 @@ export class ReportsService {
     const spinCount = transactions.filter((t) => t.type === TransactionType.SPIN).length;
 
     const totalTips = transactions.reduce((sum, t) => sum + Number(t.tipAmount || 0), 0);
-    const totalRevenue = salesRevenue + spinRevenue;
+    const totalRevenue = transactions.reduce((sum, t) => sum + Number(t.totalAmount || 0), 0);
 
-    // Payment method breakdown
-    const paymentBreakdown = {
-      CASH: transactions
-        .filter((t) => t.paymentMethod === 'CASH')
-        .reduce((sum, t) => sum + Number(t.totalAmount || 0), 0),
-      TELEBIRR: transactions
-        .filter((t) => t.paymentMethod === 'TELEBIRR')
-        .reduce((sum, t) => sum + Number(t.totalAmount || 0), 0),
-      CBE: transactions
-        .filter((t) => t.paymentMethod === 'CBE')
-        .reduce((sum, t) => sum + Number(t.totalAmount || 0), 0),
-    };
+    // Initial breakdown values
+    const paymentBreakdown = { CASH: 0, TELEBIRR: 0, CBE: 0 };
+    const tipBreakdown = { CASH: 0, TELEBIRR: 0, CBE: 0 };
 
-    // Tip breakdown
-    const tipBreakdown = {
-      CASH: transactions
-        .filter((t) => t.paymentMethod === 'CASH')
-        .reduce((sum, t) => sum + Number(t.tipAmount || 0), 0),
-      TELEBIRR: transactions
-        .filter((t) => t.paymentMethod === 'TELEBIRR')
-        .reduce((sum, t) => sum + Number(t.tipAmount || 0), 0),
-      CBE: transactions
-        .filter((t) => t.paymentMethod === 'CBE')
-        .reduce((sum, t) => sum + Number(t.tipAmount || 0), 0),
-    };
+    transactions.forEach((t) => {
+      if (t.paymentMethod === 'CUSTOM' && t.paymentDetails) {
+        const details = t.paymentDetails as any;
+        paymentBreakdown.CASH += Number(details.CASH || 0);
+        paymentBreakdown.TELEBIRR += Number(details.TELEBIRR || 0);
+        paymentBreakdown.CBE += Number(details.CBE || 0);
+
+        // We assume tips are currently lumped, but if we wanted to split them 
+        // we'd need tipDetails. For now, we attribute tip to the primary methods if simple, 
+        // or just keep it simple. If it's CUSTOM, we might just attribute the tip to CASH 
+        // or distribute it proportionally. For now, since the UI uses "Keep Change as Tip"
+        // mostly for CASH or CUSTOM modal, let's just use the primary method for tips
+        // if it's not custom. If it IS custom, we'll attribute to CASH for now as a fallback.
+        tipBreakdown.CASH += Number(t.tipAmount || 0);
+      } else {
+        const method = t.paymentMethod as keyof typeof paymentBreakdown;
+        if (paymentBreakdown[method] !== undefined) {
+          paymentBreakdown[method] += Number(t.totalAmount || 0);
+          tipBreakdown[method] += Number(t.tipAmount || 0);
+        }
+      }
+    });
 
     // Gross Profit calculation using Average Cost
     let totalCOGS = 0;
     const saleItems = await this.prisma.transactionItems.findMany({
       where: {
         transaction: {
-          createdAt: { gte: startOfDay, lte: endOfDay },
+          createdAt: { gte: start, lte: end },
           type: TransactionType.SALE,
         },
       },
@@ -110,7 +112,7 @@ export class ReportsService {
     // Spin rewards items & cost
     const spinRewards = await this.prisma.inventoryMovements.findMany({
       where: {
-        createdAt: { gte: startOfDay, lte: endOfDay },
+        createdAt: { gte: start, lte: end },
         type: MovementType.SPIN_REWARD,
       },
       include: {
@@ -150,7 +152,8 @@ export class ReportsService {
     );
 
     return {
-      date: startOfDay,
+      date: start,
+      endDate: end,
       totalRevenue: Number(totalRevenue.toFixed(2)),
       salesRevenue: Number(salesRevenue.toFixed(2)),
       salesCount,

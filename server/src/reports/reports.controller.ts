@@ -7,13 +7,18 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class ReportsController {
   constructor(private readonly reportsService: ReportsService) {}
 
-  @Get('daily')
-  getDailySummary(@Req() req, @Query('date') dateString?: string) {
+  @Get('summary')
+  getSummary(
+    @Req() req,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
     if (req.user.role !== 'ADMIN') {
       throw new ForbiddenException('Access denied. Admin role required.');
     }
-    const date = dateString ? new Date(dateString) : new Date();
-    return this.reportsService.getDailySummary(date);
+    const startDate = from ? new Date(from) : new Date();
+    const endDate = to ? new Date(to) : startDate;
+    return this.reportsService.getSummary(startDate, endDate);
   }
 
   @Get('inventory')
