@@ -122,6 +122,7 @@ export default function PosPage() {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const prevTotalRef = useRef<number>(0);
 
   useEffect(() => {
     fetchItems();
@@ -173,6 +174,23 @@ export default function PosPage() {
       ? customPayments.CASH + customPayments.TELEBIRR + customPayments.CBE
       : paidAmount;
   const change = Math.max(0, effectivePaidAmount - total);
+
+  // Auto-fill paidAmount for non-custom payment methods
+  useEffect(() => {
+    setPaidAmount((currentPaid) => {
+      if (paymentMethod !== "CUSTOM") {
+        if (
+          currentPaid === 0 ||
+          currentPaid === prevTotalRef.current ||
+          currentPaid < total
+        ) {
+          return total;
+        }
+      }
+      return currentPaid;
+    });
+    prevTotalRef.current = total;
+  }, [total, paymentMethod]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -356,9 +374,18 @@ export default function PosPage() {
         return;
       }
       if (paidAmount < total - 0.01) {
+        console.log(`Paid Amount: ${paidAmount}`);
+        console.log(`Total Amount: ${total}`);
         showToast("Payment amount not covered", "error");
         return;
       }
+    }
+
+    if (change > 0.01) {
+      const confirmChange = window.confirm(
+        `Change Due: ${formatMoney(change)}\n\nPlease confirm you have returned the change to the customer before completing the sale.`,
+      );
+      if (!confirmChange) return;
     }
 
     setProcessing(true);
@@ -947,10 +974,13 @@ export default function PosPage() {
 
                       if (totalAdded > 0) {
                         if (
-                          confirm("Do you want to clear the custom payments?")
+                          confirm(
+                            "Do you want to clear the custom payments and associated tips?",
+                          )
                         ) {
                           setCustomPayments({ CASH: 0, TELEBIRR: 0, CBE: 0 });
-                          setPaidAmount(0);
+                          setTipAmount(0);
+                          setCustomTip("");
                         } else {
                           // Prevent switch if user cancels
                           return;

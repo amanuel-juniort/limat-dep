@@ -199,23 +199,6 @@ export default function ReportsPage() {
           </div>
         </header>
 
-        {/* Print Header - Visible only in Print */}
-        <div className="hidden print:block mb-10 text-center border-b pb-8 border-slate-200">
-          <h1 className="text-3xl font-black mb-2 uppercase tracking-tighter">
-            Limat Terminal Report
-          </h1>
-          <p className="text-sm font-bold text-slate-500 uppercase tracking-widest">
-            {isRangeMode ? "Custom Range Summary" : "Daily Summary"} ·{" "}
-            {new Date(fromDate).toLocaleDateString("en-US", {
-              dateStyle: isRangeMode ? "medium" : "full",
-            })}
-            {isRangeMode &&
-              ` — ${new Date(toDate).toLocaleDateString("en-US", {
-                dateStyle: "medium",
-              })}`}
-          </p>
-        </div>
-
         {loading ? (
           <div className="flex h-64 items-center justify-center print:hidden">
             <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
@@ -228,13 +211,9 @@ export default function ReportsPage() {
                 <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 print:opacity-100">
                   Total Transactions
                 </p>
-                <h2 className="mt-2 text-4xl font-black tracking-tighter print:text-3xl">
+                <h2 className="mt-2 text-4xl font-black tracking-tighter">
                   {formatMoney(summary.totalRevenue)}
                 </h2>
-                <div className="mt-6 flex items-center gap-2 text-xs font-bold text-indigo-100 print:text-slate-500">
-                  <TrendingUp className="h-4 w-4" />
-                  <span>Gross Profit: {formatMoney(summary.grossProfit)}</span>
-                </div>
               </div>
             </div>
 
@@ -274,7 +253,7 @@ export default function ReportsPage() {
                 </p>
               </div>
 
-              <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900 print:border print:border-slate-100 flex flex-col justify-between">
+              <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900 print:border print:border-slate-100 flex flex-col justify-between col-span-2">
                 <div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 mb-3">
                     <Coins className="h-4 w-4" />
@@ -284,25 +263,6 @@ export default function ReportsPage() {
                   </p>
                   <h3 className="text-lg font-black mt-1">
                     {formatMoney(summary.totalTips)}
-                  </h3>
-                </div>
-              </div>
-
-              <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900 print:border print:border-slate-100 flex flex-col justify-between">
-                <div>
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-orange-50 text-orange-600 dark:bg-orange-900/20 mb-3">
-                    <TrendingUp className="h-4 w-4" />
-                  </div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Profit Margin
-                  </p>
-                  <h3 className="text-lg font-black mt-1 text-emerald-600">
-                    {summary.totalRevenue > 0
-                      ? Math.round(
-                          (summary.grossProfit / summary.totalRevenue) * 100,
-                        )
-                      : 0}
-                    %
                   </h3>
                 </div>
               </div>
@@ -322,36 +282,12 @@ export default function ReportsPage() {
                     {formatMoney(summary.salesRevenue)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm border-b border-slate-50 dark:border-slate-800 pb-3">
+                <div className="flex justify-between items-center text-sm pb-1">
                   <div className="flex items-center gap-2 text-slate-500 font-bold">
                     <RotateCw className="h-3.5 w-3.5" /> Spin Revenue
                   </div>
                   <span className="font-black tabular-nums">
                     {formatMoney(summary.spinRevenue)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm border-b border-slate-50 dark:border-slate-800 pb-3">
-                  <div className="flex items-center gap-2 text-slate-500 font-bold">
-                    <Package className="h-3.5 w-3.5" /> Inventory COGS
-                  </div>
-                  <span className="font-black tabular-nums text-rose-500">
-                    -{formatMoney(summary.totalCOGS)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center text-sm border-b border-slate-50 dark:border-slate-800 pb-3">
-                  <div className="flex items-center gap-2 text-slate-500 font-bold">
-                    <Gift className="h-3.5 w-3.5" /> Marketing Cost
-                  </div>
-                  <span className="font-black tabular-nums text-rose-500">
-                    -{formatMoney(summary.marketingCost)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center pt-2">
-                  <span className="text-xs font-black uppercase tracking-widest">
-                    Net Gross Profit
-                  </span>
-                  <span className="text-xl font-black text-emerald-500 tabular-nums">
-                    {formatMoney(summary.grossProfit)}
                   </span>
                 </div>
               </div>
@@ -646,7 +582,7 @@ export default function ReportsPage() {
 
       {/* Hidden Print Content (Standard Layout) */}
       {summary && (
-        <div className="hidden print:block w-full text-black">
+        <div className="hidden print:block w-full text-black break-before-page">
           <div className="text-center border-b-2 border-slate-900 pb-6 mb-8">
             <h1 className="text-2xl font-black uppercase tracking-tighter">
               Limat Terminal

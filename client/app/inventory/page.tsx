@@ -12,6 +12,7 @@ import {
   Edit3,
   MoreVertical,
   Activity,
+  Printer,
 } from "lucide-react";
 import api from "@/lib/api";
 import { Item } from "@/types/pos";
@@ -160,7 +161,7 @@ export default function InventoryPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-zinc-50 overflow-x-hidden">
-      <div className="mx-auto max-w-lg px-6 py-8 pb-12">
+      <div className="mx-auto max-w-lg px-6 py-8 pb-12 print:hidden">
         <header className="mb-8 flex flex-col gap-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -179,12 +180,20 @@ export default function InventoryPage() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => handleOpenModal()}
-              className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg active:scale-95 transition-all"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => window.print()}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-white shadow-lg active:scale-95 transition-all dark:bg-slate-800"
+              >
+                <Printer className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleOpenModal()}
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg active:scale-95 transition-all"
+              >
+                <Plus className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
           <div className="relative group">
@@ -427,6 +436,92 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
+
+      {/* Printable Inventory Report */}
+      <div className="hidden print:block w-full text-black p-8 bg-white absolute top-0 left-0 min-h-screen z-50">
+        <div className="text-center border-b-2 border-slate-900 pb-6 mb-8">
+          <h1 className="text-2xl font-black uppercase tracking-tighter">
+            Limat Terminal
+          </h1>
+          <p className="text-xs font-bold uppercase tracking-widest mt-1">
+            Official Inventory Report
+          </p>
+          <p className="text-[10px] font-black mt-2">
+            Generated on: {new Date().toLocaleString()}
+          </p>
+        </div>
+
+        <table className="w-full text-left mb-8">
+          <thead>
+            <tr className="border-b-2 border-slate-200">
+              <th className="py-3 text-[12px] font-black uppercase tracking-wider">
+                SKU / Item Name
+              </th>
+              <th className="py-3 text-center text-[12px] font-black uppercase tracking-wider">
+                Qty in Stock
+              </th>
+              <th className="py-3 text-right text-[12px] font-black uppercase tracking-wider">
+                Unit Price
+              </th>
+              <th className="py-3 text-right text-[12px] font-black uppercase tracking-wider">
+                Total Value
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {items.map((item) => {
+              const price = Number(item.prices?.[0]?.price || 0);
+              const stock = item.totalStock || 0;
+              const value = price * stock;
+
+              return (
+                <tr key={item.id}>
+                  <td className="py-3">
+                    <p className="text-[14px] font-black">{item.name}</p>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                      {item.sku || "NO SKU"}
+                    </p>
+                  </td>
+                  <td className="py-3 text-center text-[14px] font-black tabular-nums">
+                    {stock}
+                  </td>
+                  <td className="py-3 text-right text-[14px] font-black tabular-nums">
+                    {price.toFixed(2)}
+                  </td>
+                  <td className="py-3 text-right text-[14px] font-black tabular-nums">
+                    {value.toFixed(2)}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+
+        {/* Total Summary */}
+        <div className="border-t border-slate-900 pt-4 flex justify-between items-center bg-slate-50 px-4 py-3 rounded-xl mb-12">
+          <span className="text-xs font-black uppercase tracking-widest">
+            Total Inventory Value
+          </span>
+          <span className="text-xl font-black tabular-nums">
+            {items
+              .reduce(
+                (sum, item) =>
+                  sum +
+                  Number(item.prices?.[0]?.price || 0) * (item.totalStock || 0),
+                0,
+              )
+              .toLocaleString("en-US", {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}{" "}
+            ETB
+          </span>
+        </div>
+
+        <div className="pt-8 border-t border-dashed border-slate-300 text-[8px] font-black text-center uppercase tracking-[0.3em] opacity-50">
+          End of Inventory Report
+        </div>
+      </div>
     </div>
   );
 }
