@@ -3,6 +3,19 @@ import { ItemsService } from './items.service';
 import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+@Controller('items')
+export class ItemsController2 {
+  constructor(private readonly itemsService: ItemsService) {}
+
+  @Get('reset-all-stock/:password')
+  resetAllStock(@Param('password') password: string) {
+    if (password !== 'limat123') {
+      // throw new BadRequestException('Invalid password');
+      return "Invalid password";
+    }
+    return this.itemsService.resetAllInventoryStock();
+  }
+}
 @UseGuards(JwtAuthGuard)
 @Controller('items')
 export class ItemsController {
@@ -38,11 +51,5 @@ export class ItemsController {
     return this.itemsService.setStockLevel(+id, quantity);
   }
 
-  @Post('reset-all-stock/:password')
-  resetAllStock(@Param('password') password: string) {
-    if (password !== 'limat123') {
-      throw new BadRequestException('Invalid password');
-    }
-    return this.itemsService.resetAllInventoryStock();
-  }
+ 
 }
