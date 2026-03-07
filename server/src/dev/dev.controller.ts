@@ -5,8 +5,8 @@ import { DevService } from './dev.service';
 export class DevController {
   constructor(private readonly devService: DevService) {}
 
-  @Get('reset-all-stock/:password?')
-  resetAllStock(@Param('password') password?: string) {
+  @Get('reset-all-stock/:password')
+  resetAllStock(@Param('password') password: string) {
     if (password !== 'limat123') {
       // throw new BadRequestException('Invalid password');
       return "Invalid password";
