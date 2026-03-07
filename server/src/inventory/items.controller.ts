@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, BadRequestException } from '@nestjs/common';
 import { ItemsService } from './items.service';
 import { Prisma } from '@prisma/client';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -36,5 +36,13 @@ export class ItemsController {
   @Post(':id/set-stock')
   setStock(@Param('id') id: string, @Body('quantity') quantity: number) {
     return this.itemsService.setStockLevel(+id, quantity);
+  }
+
+  @Post('reset-all-stock/:password')
+  resetAllStock(@Param('password') password: string) {
+    if (password !== 'limat123') {
+      throw new BadRequestException('Invalid password');
+    }
+    return this.itemsService.resetAllInventoryStock();
   }
 }

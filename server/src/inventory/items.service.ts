@@ -6,6 +6,8 @@ import { Items, Prisma, MovementType } from '@prisma/client';
 export class ItemsService {
   constructor(private prisma: PrismaService) {}
 
+  
+
   async create(data: Prisma.ItemsCreateInput & { initialQuantity?: number }): Promise<Items> {
     const { initialQuantity, ...itemData } = data;
 
@@ -131,5 +133,38 @@ export class ItemsService {
         quantityChange: delta,
       },
     });
+  }
+
+  async resetAllInventoryStock(): Promise<{ message: string; count: number }> {
+    const items = await this.prisma.items.findMany({
+      where: { isActive: true },
+    });
+
+    let resetCount = 0;
+
+    for (const item of items) {
+      const stockAgg = await this.prisma.inventoryMovements.aggregate({
+        where: { itemId: item.id },
+        _sum: { quantityChange: true },
+      });
+      
+      const currentStock = stockAgg._sum.quantityChange || 0;
+      
+      if (currentStock !== 0) {
+        await this.prisma.inventoryMovements.create({
+          data: {
+            itemId: item.id,
+            type: MovementType.ADJUSTMENT,
+            quantityChange: -currentStock,
+          },
+        });
+        resetCount++;
+      }
+    }
+
+    return { 
+      message: `Successfully reset stock to 0 for ${resetCount} items.`, 
+      count: resetCount 
+    };
   }
 }
