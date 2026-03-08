@@ -395,11 +395,7 @@ export default function PosPage() {
       for (const result of spinResults) {
         await api.post("/sales/spin", {
           spinResult:
-            result.type === "thankyou"
-              ? result.message
-              : result.type === "item"
-                ? `Won: ${result.itemName}`
-                : result.message,
+            result.type === "item" ? `Won: ${result.itemName}` : "Reward",
           rewardItemId:
             result.type === "item" ? Number(result.itemId) : undefined,
           tipAmount: 0,
