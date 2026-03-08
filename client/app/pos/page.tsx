@@ -116,8 +116,6 @@ export default function PosPage() {
     "item" | "thankyou" | "discount"
   >("item");
   const [selectedItemId, setSelectedItemId] = useState<string | number>("");
-  const [customMessage, setCustomMessage] = useState<string>("");
-  const [discountAmount, setDiscountAmount] = useState<number>(0);
 
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -260,20 +258,19 @@ export default function PosPage() {
     // Reset modal state
     setSelectedPrizeType("item");
     setSelectedItemId("");
-    setCustomMessage("");
-    setDiscountAmount(0);
   };
 
   // Save spin result from modal
-  const saveSpinResult = () => {
+  const saveSpinResult = (itemId?: string | number) => {
     let result: SpinResult;
 
     if (selectedPrizeType === "item") {
-      if (!selectedItemId) {
+      const idToUse = itemId || selectedItemId;
+      if (!idToUse) {
         showToast("Select an item won", "error");
         return;
       }
-      const item = items.find((i) => String(i.id) === String(selectedItemId));
+      const item = items.find((i) => String(i.id) === String(idToUse));
       if (!item) return;
 
       result = {
@@ -283,11 +280,11 @@ export default function PosPage() {
         itemName: item.name,
         timestamp: new Date(),
       };
-    } else if (selectedPrizeType === "thankyou") {
+    } else {
       result = {
         id: Date.now().toString() + Math.random(),
         type: "thankyou",
-        message: customMessage || "Thanks for playing!",
+        message: "Thanks for playing!",
         timestamp: new Date(),
       };
     }
@@ -295,6 +292,7 @@ export default function PosPage() {
     setSpinResults((prev) => [result, ...prev]);
     setSpinQuantity((prev) => Math.max(0, prev - 1));
     showToast("Spin result recorded!", "success");
+    setSelectedItemId("");
   };
 
   const deleteSpinResult = (id: string) => {
@@ -588,7 +586,11 @@ export default function PosPage() {
               </label>
               <select
                 value={selectedItemId}
-                onChange={(e) => setSelectedItemId(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedItemId(val);
+                  if (val) saveSpinResult(val);
+                }}
                 className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
               >
                 <option value="">Search Inventory...</option>
@@ -602,34 +604,15 @@ export default function PosPage() {
           )}
 
           {selectedPrizeType === "thankyou" && (
-            <div className="mb-8">
-              <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                Message (Optional)
-              </label>
-              <input
-                type="text"
-                value={customMessage}
-                onChange={(e) => setCustomMessage(e.target.value)}
-                placeholder="Better luck next time!"
-                className="w-full rounded-2xl border border-slate-100 bg-slate-50 dark:bg-slate-800 px-4 py-4 text-xs font-bold outline-none focus:border-indigo-500 text-slate-900 dark:text-white"
-              />
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => saveSpinResult()}
+                className="w-full rounded-2xl bg-indigo-600 py-5 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]"
+              >
+                Record Result
+              </button>
             </div>
           )}
-
-          <div className="flex flex-col gap-3">
-            <button
-              onClick={saveSpinResult}
-              className={cn(
-                "w-full rounded-2xl",
-                selectedPrizeType === "item" && !selectedItemId
-                  ? " bg-slate-50 dark:bg-slate-800 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                  : "bg-indigo-600 py-5 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]",
-              )}
-              disabled={selectedPrizeType === "item" && !selectedItemId}
-            >
-              Record Result
-            </button>
-          </div>
         </div>
 
         {/* Search */}
