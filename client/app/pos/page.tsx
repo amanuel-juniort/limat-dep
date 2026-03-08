@@ -175,18 +175,26 @@ export default function PosPage() {
 
   // Auto-fill paidAmount for non-custom payment methods
   useEffect(() => {
-    setPaidAmount((currentPaid) => {
-      if (paymentMethod !== "CUSTOM") {
-        if (
-          currentPaid === 0 ||
-          currentPaid === prevTotalRef.current ||
-          currentPaid < total
-        ) {
-          return total;
+    const prevTotal = prevTotalRef.current;
+
+    if (total <= 0) {
+      setPaidAmount(0);
+      setCustomPayments({ CASH: 0, TELEBIRR: 0, CBE: 0 });
+      setCustomPaymentsTemp({ CASH: 0, TELEBIRR: 0, CBE: 0 });
+    } else {
+      setPaidAmount((currentPaid) => {
+        if (paymentMethod !== "CUSTOM") {
+          if (
+            currentPaid === 0 ||
+            currentPaid === prevTotal ||
+            currentPaid < total
+          ) {
+            return total;
+          }
         }
-      }
-      return currentPaid;
-    });
+        return currentPaid;
+      });
+    }
     prevTotalRef.current = total;
   }, [total, paymentMethod]);
 
@@ -313,7 +321,9 @@ export default function PosPage() {
     setTipAmount(0);
     setPaidAmount(0);
     setCustomTip("");
+    setPaymentMethod("CASH");
     setCustomPayments({ CASH: 0, TELEBIRR: 0, CBE: 0 });
+    setCustomPaymentsTemp({ CASH: 0, TELEBIRR: 0, CBE: 0 });
   };
 
   // Tip functions
