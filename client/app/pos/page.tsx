@@ -49,7 +49,7 @@ interface CartItem extends Item {
 
 interface SpinResult {
   id: string;
-  type: "item" | "thankyou" | "discount";
+  type: "item" | "discount";
   itemId?: string | number;
   itemName?: string;
   message?: string;
@@ -112,9 +112,9 @@ export default function PosPage() {
   };
 
   // Modal state for recording spin results
-  const [selectedPrizeType, setSelectedPrizeType] = useState<
-    "item" | "thankyou" | "discount"
-  >("item");
+  const [selectedPrizeType, setSelectedPrizeType] = useState<"spin" | "sales">(
+    "spin",
+  );
   const [selectedItemId, setSelectedItemId] = useState<string | number>("");
 
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -256,15 +256,16 @@ export default function PosPage() {
     }
 
     // Reset modal state
-    setSelectedPrizeType("item");
+    setSelectedPrizeType("spin");
     setSelectedItemId("");
   };
 
   // Save spin result from modal
+  // Save spin result from modal
   const saveSpinResult = (itemId?: string | number) => {
     let result: SpinResult;
 
-    if (selectedPrizeType === "item") {
+    if (selectedPrizeType === "spin") {
       const idToUse = itemId || selectedItemId;
       if (!idToUse) {
         showToast("Select an item won", "error");
@@ -280,18 +281,19 @@ export default function PosPage() {
         itemName: item.name,
         timestamp: new Date(),
       };
-    } else {
-      result = {
-        id: Date.now().toString() + Math.random(),
-        type: "thankyou",
-        message: "Thanks for playing!",
-        timestamp: new Date(),
-      };
+
+      setSpinResults((prev) => [result, ...prev]);
+      setSpinQuantity((prev) => Math.max(0, prev - 1));
+      showToast("Spin reward recorded!", "success");
+    } else if (selectedPrizeType === "sales") {
+      const idToUse = itemId || selectedItemId;
+      const item = items.find((i) => String(i.id) === String(idToUse));
+      if (item) {
+        addToCart(item);
+        showToast(`${item.name} added to cart`, "success");
+      }
     }
 
-    setSpinResults((prev) => [result, ...prev]);
-    setSpinQuantity((prev) => Math.max(0, prev - 1));
-    showToast("Spin result recorded!", "success");
     setSelectedItemId("");
   };
 
@@ -530,7 +532,7 @@ export default function PosPage() {
 
         {/* Spin Result Modal */}
         <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
-          <Gift className="h-3 w-3" /> Spin Result
+          <Gift className="h-3 w-3" /> Result
         </p>
         <div
           ref={modalRef}
@@ -539,7 +541,7 @@ export default function PosPage() {
           <div className="mb-6 flex items-center justify-between">
             <div>
               <h3 className="text-xl font-black tracking-tight text-slate-900 dark:text-white">
-                Spin Result
+                Result
               </h3>
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
                 Capture the prize outcome
@@ -549,40 +551,42 @@ export default function PosPage() {
 
           <div className="mb-6 space-y-3">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-              Win Category
+              Category
             </p>
             <div className="grid grid-cols-2 gap-2">
               <button
-                onClick={() => setSelectedPrizeType("item")}
+                onClick={() => setSelectedPrizeType("spin")}
                 className={cn(
                   "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
-                  selectedPrizeType === "item"
+                  selectedPrizeType === "spin"
                     ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
                     : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
                 )}
               >
                 <Gift className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase">Item</span>
+                <span className="text-[10px] font-black uppercase">SPIN</span>
               </button>
               <button
-                onClick={() => setSelectedPrizeType("thankyou")}
+                onClick={() => setSelectedPrizeType("sales")}
                 className={cn(
                   "flex flex-col items-center gap-2 rounded-2xl border p-4 transition-all",
-                  selectedPrizeType === "thankyou"
+                  selectedPrizeType === "sales"
                     ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
                     : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
                 )}
               >
-                <Sparkles className="h-5 w-5" />
-                <span className="text-[10px] font-black uppercase">Thanks</span>
+                <Wallet className="h-5 w-5" />
+                <span className="text-[10px] font-black uppercase">SALES</span>
               </button>
             </div>
           </div>
 
-          {selectedPrizeType === "item" && (
+          {(selectedPrizeType === "spin" || selectedPrizeType === "sales") && (
             <div className="mb-8">
               <label className="mb-2 block text-[10px] font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                Select Won Item
+                {selectedPrizeType === "spin"
+                  ? "Select Won Item"
+                  : "Select Item to Sell"}
               </label>
               <select
                 value={selectedItemId}
@@ -602,21 +606,10 @@ export default function PosPage() {
               </select>
             </div>
           )}
-
-          {selectedPrizeType === "thankyou" && (
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={() => saveSpinResult()}
-                className="w-full rounded-2xl bg-indigo-600 py-5 text-xs font-black uppercase tracking-widest text-white hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-[0.98]"
-              >
-                Record Result
-              </button>
-            </div>
-          )}
         </div>
 
         {/* Search */}
-        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
+        {/* <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 flex items-center gap-2">
           <Wallet className="h-3 w-3" /> Sales
         </p>
         <div className="mb-6" ref={dropdownRef}>
@@ -714,7 +707,7 @@ export default function PosPage() {
               </div>
             )}
           </div>
-        </div>
+        </div> */}
 
         {/* Order Sheet */}
         <div className="bento-card mb-4 p-5 border-none shadow-sm bg-white dark:bg-slate-900">
@@ -825,7 +818,7 @@ export default function PosPage() {
                                 ? result.itemName
                                 : result.type === "discount"
                                   ? `${result.discountAmount} ETB Discount`
-                                  : result.message}
+                                  : ""}
                             </p>
                             <span className="text-[8px] font-black uppercase text-purple-400">
                               {result.type === "item"
