@@ -516,10 +516,10 @@ export default function PosPage() {
                   <div className="mb-4 flex items-center justify-between">
                     <div>
                       <h3 className="text-sm font-black uppercase tracking-widest text-slate-700 dark:text-slate-300">
-                        Result Recorder
+                        Order Ticket
                       </h3>
-                      <p className="text-[9px] font-bold text-slate-400">
-                        Capture the prize outcome
+                      <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                        Current Transaction
                       </p>
                     </div>
                   </div>
@@ -530,8 +530,8 @@ export default function PosPage() {
                       className={cn(
                         "flex items-center justify-center gap-2 rounded-xl border p-3 transition-all",
                         selectedPrizeType === "spin"
-                          ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
-                          : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
+                          ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 ring-4 ring-indigo-50 dark:ring-indigo-900/10 font-black"
+                          : "border-transparent bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 opacity-70 hover:opacity-100",
                       )}
                     >
                       <Gift className="h-4 w-4" />
@@ -544,8 +544,8 @@ export default function PosPage() {
                       className={cn(
                         "flex items-center justify-center gap-2 rounded-xl border p-3 transition-all",
                         selectedPrizeType === "sales"
-                          ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600"
-                          : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-800 text-slate-400",
+                          ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 ring-4 ring-indigo-50 dark:ring-indigo-900/10 font-black"
+                          : "border-transparent bg-slate-50 dark:bg-slate-800/50 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-300 opacity-70 hover:opacity-100",
                       )}
                     >
                       <Wallet className="h-4 w-4" />

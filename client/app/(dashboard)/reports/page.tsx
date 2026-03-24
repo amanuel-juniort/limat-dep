@@ -262,12 +262,20 @@ export default function ReportsPage() {
                     {formatMoney(summary.salesRevenue)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-sm pb-1">
+                <div className="flex justify-between items-center text-sm border-b border-slate-50 dark:border-slate-800 pb-3">
                   <div className="flex items-center gap-2 text-slate-500 font-bold">
                     <RotateCw className="h-3.5 w-3.5" /> Spin Revenue
                   </div>
                   <span className="font-black tabular-nums">
                     {formatMoney(summary.spinRevenue)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-sm pb-1">
+                  <div className="flex items-center gap-2 text-slate-500 font-bold">
+                    <Coins className="h-3.5 w-3.5" /> Total Tips
+                  </div>
+                  <span className="font-black tabular-nums">
+                    {formatMoney(summary.totalTips)}
                   </span>
                 </div>
               </div>

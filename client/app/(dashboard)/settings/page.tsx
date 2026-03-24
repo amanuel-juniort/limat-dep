@@ -88,8 +88,9 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Access Role</label>
-                  <div className="rounded-2xl border border-slate-100 bg-slate-50/50 p-4 text-sm font-bold text-indigo-600 dark:bg-slate-950 dark:border-slate-800">
-                    {user?.role}
+                  <div className="flex items-center gap-2 p-4">
+                    <Shield className="h-4 w-4 text-indigo-600" />
+                    <span className="text-sm font-black text-indigo-600 tracking-widest">{user?.role}</span>
                   </div>
                 </div>
               </div>
@@ -135,9 +136,9 @@ export default function SettingsPage() {
           
           <div className="bento-card border-none bg-indigo-600 p-8 text-white shadow-xl shadow-indigo-100 dark:shadow-none relative overflow-hidden">
             <div className="relative z-10">
-              <h3 className="text-lg font-black tracking-tight mb-2">System Alpha Node</h3>
+              <h3 className="text-lg font-black tracking-tight mb-2">VTech System Node</h3>
               <p className="text-xs font-medium text-indigo-100 max-w-sm">
-                This terminal is registered as a secure node. Version 3.4.2-STARK.
+                This terminal is registered as a secure node. Version 3.4.2-VTech.
               </p>
             </div>
             <Database className="absolute -right-4 -bottom-4 h-32 w-32 text-white/10 rotate-12" />

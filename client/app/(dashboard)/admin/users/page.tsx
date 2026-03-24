@@ -126,7 +126,8 @@ export default function AdminUsersPage() {
             {filteredUsers.map((user) => (
               <div
                 key={user.id}
-                className="bento-card p-5 border-none shadow-sm relative group overflow-hidden"
+                onClick={() => alert(`Edit User: ${user.name}`)}
+                className="bento-card p-5 border-none shadow-sm relative group overflow-hidden cursor-pointer hover:shadow-md hover:ring-2 hover:ring-indigo-500/20 transition-all"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex gap-4">
@@ -167,10 +168,10 @@ export default function AdminUsersPage() {
                     </div>
                   </div>
 
-                  {user.status === "PENDING" && (
-                    <div className="flex gap-2">
+                  {user.status === "PENDING" ? (
+                    <div className="flex gap-2 relative z-10">
                       <button
-                        onClick={() => handleUpdateStatus(user.id, "APPROVED")}
+                        onClick={(e) => { e.stopPropagation(); handleUpdateStatus(user.id, "APPROVED"); }}
                         disabled={processingId === user.id}
                         className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-100 hover:bg-emerald-600 transition-all active:scale-90 dark:shadow-none"
                       >
@@ -181,11 +182,17 @@ export default function AdminUsersPage() {
                         )}
                       </button>
                       <button
-                        onClick={() => handleUpdateStatus(user.id, "REJECTED")}
+                        onClick={(e) => { e.stopPropagation(); handleUpdateStatus(user.id, "REJECTED"); }}
                         disabled={processingId === user.id}
                         className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-rose-50 hover:text-rose-500 transition-all active:scale-90 dark:bg-white/5"
                       >
                         <XCircle className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity relative z-10">
+                      <button className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-400 hover:bg-indigo-50 hover:text-indigo-600 transition-all active:scale-90 dark:bg-white/5">
+                        <MoreVertical className="h-4 w-4" />
                       </button>
                     </div>
                   )}

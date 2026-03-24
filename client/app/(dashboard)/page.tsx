@@ -160,24 +160,28 @@ export default function Home() {
               href: "/pos",
               icon: ShoppingCart,
               color: "bg-indigo-600",
+              subtitle: "Process transactions",
             },
             {
               label: "Inventory Storage",
               href: "/inventory",
               icon: Package,
               color: "bg-emerald-600",
+              subtitle: "Manage products",
             },
             {
               label: "Report",
               href: "/reports",
               icon: BarChart3,
               color: "bg-blue-600",
+              subtitle: "View daily totals",
             },
             {
               label: "Terminal Settings",
-              href: "#",
+              href: "/settings",
               icon: Settings,
               color: "bg-slate-600",
+              subtitle: "Configure system",
             },
             ...(user?.role === "ADMIN"
               ? [
@@ -187,6 +191,7 @@ export default function Home() {
                     icon: ShieldAlert,
                     color: "bg-rose-600",
                     badgeCount: stats.pendingUsers,
+                    subtitle: "Manage users",
                   },
                 ]
               : []),
@@ -210,7 +215,7 @@ export default function Home() {
                     {item.label}
                   </h3>
                   <p className="text-[10px] font-medium text-slate-400 uppercase tracking-tighter">
-                    System Node Access
+                    {(item as any).subtitle || "System Node Access"}
                   </p>
                 </div>
               </div>

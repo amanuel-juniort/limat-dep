@@ -260,9 +260,11 @@ export default function InventoryPage() {
                           {Number(item.prices?.[0]?.price || 0).toFixed(0)}{" "}
                           <span className="text-[10px] opacity-30">ETB</span>
                         </p>
-                        <div className="mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20">
-                          Active
-                        </div>
+                        {item.isActive === false && (
+                          <div className="mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest bg-rose-50 text-rose-600 dark:bg-rose-900/20">
+                            INACTIVE
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))}
