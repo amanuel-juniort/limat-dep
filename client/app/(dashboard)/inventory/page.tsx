@@ -161,25 +161,9 @@ export default function InventoryPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-zinc-50 overflow-x-hidden">
-      <div className="mx-auto max-w-lg px-6 py-8 pb-12 print:hidden">
+      <div className="max-w-7xl px-8 py-10">
         <header className="mb-8 flex flex-col gap-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/"
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-400 hover:bg-slate-50 transition-all shadow-sm active:scale-95 dark:bg-slate-900 dark:border-slate-800"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-              <div>
-                <h1 className="text-xl font-black tracking-tight">
-                  Inventory <span className="text-indigo-600">Stock</span>
-                </h1>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Storage Management
-                </p>
-              </div>
-            </div>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => window.print()}
@@ -218,13 +202,16 @@ export default function InventoryPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-slate-50 bg-slate-50/50 dark:bg-white/5 dark:border-slate-800">
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <th className="px-6 md:px-8 py-4 md:py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
                       Item
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                    <th className="hidden lg:table-cell px-6 py-4 md:py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Last Updated
+                    </th>
+                    <th className="px-6 py-4 md:py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
                       Stock
                     </th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
+                    <th className="px-6 py-4 md:py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
                       Price
                     </th>
                   </tr>
@@ -236,22 +223,27 @@ export default function InventoryPage() {
                       onClick={() => handleOpenModal(item)}
                       className="group cursor-pointer hover:bg-slate-50/50 dark:hover:bg-indigo-900/10 transition-colors"
                     >
-                      <td className="px-6 py-4">
+                      <td className="px-6 md:px-8 py-4 md:py-2.5">
                         <div className="flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-50 dark:bg-white/5">
-                            <Package className="h-4 w-4 text-slate-300 group-hover:text-indigo-600 transition-colors" />
+                          <div className="flex h-10 w-10 md:h-8 md:w-8 items-center justify-center rounded-xl bg-slate-50 dark:bg-white/5 transition-all group-hover:bg-indigo-600 group-hover:text-white">
+                            <Package className="h-4 w-4" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold tracking-tight mb-1">
+                            <p className="text-sm font-bold tracking-tight mb-0.5">
                               {item.name}
                             </p>
-                            <p className="text-[10px] font-black text-indigo-600/50 uppercase">
+                            <p className="text-[10px] font-black text-slate-400 uppercase">
                               {item.sku || "NO SKU"}
                             </p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="hidden lg:table-cell px-6 py-4 md:py-2.5">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                          {new Date(item.updatedAt).toLocaleDateString()}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 md:py-2.5 text-center">
                         <span
                           className={cn(
                             "inline-flex items-center justify-center rounded-lg px-2 py-1 text-xs font-black tabular-nums",
@@ -263,9 +255,9 @@ export default function InventoryPage() {
                           {item.totalStock || 0}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-6 py-4 md:py-2.5 text-right">
                         <p className="text-sm font-black tabular-nums">
-                          {Number(item.prices?.[0]?.price || 0).toFixed(2)}{" "}
+                          {Number(item.prices?.[0]?.price || 0).toFixed(0)}{" "}
                           <span className="text-[10px] opacity-30">ETB</span>
                         </p>
                         <div className="mt-1 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20">

@@ -12,6 +12,7 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  Shield,
 } from "lucide-react";
 import api from "@/lib/api";
 
@@ -83,21 +84,76 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-50 dark:bg-slate-950 font-sans">
-      <div className="flex flex-1 flex-col items-center justify-center p-6 pb-12">
-        <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none">
-            <UserPlus className="h-7 w-7" />
+    <div className="flex min-h-screen bg-white dark:bg-slate-950 font-sans">
+      {/* Brand Section - Visible on Desktop */}
+      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden bg-indigo-950">
+        <div 
+          className="absolute inset-0 z-0 opacity-40 mix-blend-overlay"
+          style={{ 
+            backgroundImage: "url('/brand-bg.png')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center'
+          }}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/60 to-slate-950/90 z-10" />
+        
+        <div className="relative z-20 flex flex-col justify-between p-16 w-full text-white">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md text-white border border-white/20">
+              <UserPlus className="h-6 w-6" />
+            </div>
+            <span className="text-xl font-black tracking-tight">
+              Limat <span className="text-indigo-400">Terminal</span>
+            </span>
           </div>
-          <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-            Create <span className="text-indigo-600">Account</span>
-          </h1>
-          <p className="text-xs font-black uppercase tracking-widest text-slate-400">
-            Join the POS Network
-          </p>
-        </div>
 
-        <div className="w-full max-w-sm rounded-[2.5rem] bg-white p-8 shadow-xl dark:bg-slate-900 dark:border dark:border-slate-800">
+          <div>
+            <h2 className="text-5xl font-black tracking-tighter leading-tight">
+              Join the <br />
+              <span className="text-indigo-400">Network.</span>
+            </h2>
+            <p className="mt-6 text-lg font-medium text-slate-300 max-w-md">
+              Secure your spot in the ecosystem. Every node counts towards a more efficient retail future.
+            </p>
+          </div>
+
+          <div className="space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                <Shield className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-black uppercase tracking-widest text-[10px] text-indigo-400">Security First</p>
+                <p className="text-sm font-medium text-slate-400">Role-based access control and encrypted transactions.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-4">
+              <div className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <CheckCircle2 className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="font-black uppercase tracking-widest text-[10px] text-emerald-400">Simple Approval</p>
+                <p className="text-sm font-medium text-slate-400">Fast-track verification from system administrators.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Form Section */}
+      <div className="flex flex-1 flex-col items-center justify-center p-6 bg-slate-50 dark:bg-slate-950 lg:bg-white">
+        <div className="w-full max-w-sm rounded-[2.5rem] bg-white p-8 shadow-xl dark:bg-slate-900 dark:border dark:border-slate-800 lg:shadow-none lg:p-0 lg:bg-transparent lg:border-none">
+          <div className="mb-8 text-center lg:text-left">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none lg:hidden">
+              <UserPlus className="h-7 w-7" />
+            </div>
+            <h1 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white lg:text-4xl">
+              Create <span className="text-indigo-600">Account.</span>
+            </h1>
+            <p className="mt-3 text-sm font-medium text-slate-500 dark:text-slate-400">
+              Fill in your details to request access to the terminal.
+            </p>
+          </div>
           <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
               <div className="flex items-center gap-2 rounded-2xl bg-rose-50 p-4 text-xs font-bold text-rose-500 dark:bg-rose-900/20">

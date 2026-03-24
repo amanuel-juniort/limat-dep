@@ -7,6 +7,8 @@ export interface Item {
   prices?: ItemPrice[];
   currentPrice?: number;
   totalStock?: number;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface ItemPrice {

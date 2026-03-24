@@ -82,29 +82,8 @@ export default function AdminUsersPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-zinc-50 overflow-x-hidden">
-      <div className="mx-auto max-w-lg px-6 py-8 pb-12">
+      <div className="max-w-7xl px-8 py-10">
         <header className="mb-8 flex flex-col gap-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/"
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-400 hover:bg-slate-50 transition-all shadow-sm active:scale-95 dark:bg-slate-900 dark:border-slate-800"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-              <div>
-                <h1 className="text-xl font-black tracking-tight">
-                  User <span className="text-indigo-600">Access</span>
-                </h1>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Management Dashboard
-                </p>
-              </div>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20">
-              <Users className="h-5 w-5" />
-            </div>
-          </div>
 
           <div className="relative group">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-300 group-focus-within:text-indigo-600 transition-colors" />
@@ -143,7 +122,7 @@ export default function AdminUsersPage() {
             <Loader2 className="h-6 w-6 animate-spin text-indigo-600" />
           </div>
         ) : filteredUsers.length > 0 ? (
-          <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {filteredUsers.map((user) => (
               <div
                 key={user.id}

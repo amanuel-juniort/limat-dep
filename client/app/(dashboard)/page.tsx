@@ -12,6 +12,12 @@ import {
   RotateCw,
   ShieldAlert,
   ArrowUpRight,
+  TrendingUp,
+  AlertTriangle,
+  Activity,
+  DollarSign,
+  Gift,
+  HandCoins,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -23,21 +29,36 @@ export default function Home() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [stats, setStats] = useState({
     pendingUsers: 0,
+    todayRevenue: 0,
+    todaySales: 0,
+    todayTips: 0,
     loading: true,
   });
 
   const fetchData = async () => {
     try {
       let pendingUsers = 0;
+      let todayRevenue = 0;
+      let todaySales = 0;
+      let todayTips = 0;
 
-      // Only fetch pending users for ADMIN
       if (user?.role === "ADMIN") {
-        const response = await api.get("/users/pending-count");
-        pendingUsers = response.data?.count || 0;
+        const [pendingRes, summaryRes] = await Promise.all([
+          api.get("/users/pending-count"),
+          api.get("/reports/summary"),
+        ]);
+        
+        pendingUsers = pendingRes.data?.count || 0;
+        todayRevenue = summaryRes.data?.totalRevenue || 0;
+        todaySales = summaryRes.data?.salesCount || 0;
+        todayTips = summaryRes.data?.totalTips || 0;
       }
 
       setStats({
         pendingUsers,
+        todayRevenue,
+        todaySales,
+        todayTips,
         loading: false,
       });
     } catch (err) {
@@ -58,51 +79,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-zinc-50">
-      {/* Top Navigation */}
-      <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-slate-100 bg-white/80 px-6 backdrop-blur-md dark:border-slate-800 dark:bg-slate-900/80">
-        <div className="flex items-center gap-2">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-lg shadow-indigo-100 dark:shadow-none">
-            <ShoppingCart className="h-5 w-5" />
-          </div>
-          <span className="text-lg font-black tracking-tight">
-            Limat <span className="text-indigo-600">Terminal</span>
-          </span>
-        </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50"
-          >
-            <RotateCw
-              className={cn("h-4 w-4", isRefreshing && "animate-spin")}
-            />
-          </button>
-
-          <button className="relative rounded-full p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
-            <Bell className="h-5 w-5" />
-            <span className="absolute top-2 right-2 flex h-1.5 w-1.5 rounded-full bg-rose-500"></span>
-          </button>
-
-          <div className="flex items-center gap-2 rounded-full border border-slate-100 bg-slate-50 p-1 pr-3 dark:border-slate-800 dark:bg-slate-800/50">
-            <div className="h-7 w-7 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">
-              {user?.name?.[0] || "U"}
-            </div>
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-200">
-              {user?.name || "User"}
-            </span>
-            <button
-              onClick={logout}
-              className="ml-1 text-slate-400 hover:text-rose-500 transition-all"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-lg p-6 pb-24">
+      <main className="max-w-7xl px-8 py-10">
         <div className="mb-8">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-indigo-600">
             System Operational
@@ -112,10 +90,68 @@ export default function Home() {
           </h2>
         </div>
 
+        {/* Desktop Stats Row - Admin Only */}
+        {user?.role === "ADMIN" && (
+          <div className="hidden md:grid grid-cols-4 gap-4 mb-10">
+            <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20">
+                  <DollarSign className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Today's Revenue</span>
+              </div>
+              <p className="text-xl font-black text-slate-900 dark:text-white">
+                {stats.loading ? "..." : `${stats.todayRevenue.toLocaleString()} ETB`}
+              </p>
+            </div>
+
+            <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20">
+                  <ShoppingCart className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Sales</span>
+              </div>
+              <p className="text-xl font-black text-slate-900 dark:text-white">
+                {stats.loading ? "..." : stats.todaySales}
+              </p>
+            </div>
+
+            <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-900/20">
+                  <HandCoins className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Tips Collected</span>
+              </div>
+              <p className="text-xl font-black text-slate-900 dark:text-white">
+                {stats.loading ? "..." : `${stats.todayTips.toLocaleString()} ETB`}
+              </p>
+            </div>
+
+            <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900 relative overflow-hidden">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-600 dark:bg-slate-800">
+                  <Activity className="h-4 w-4" />
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Pending Nodes</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <p className="text-xl font-black text-slate-900 dark:text-white">
+                  {stats.loading ? "..." : stats.pendingUsers}
+                </p>
+                {stats.pendingUsers > 0 && (
+                  <span className="flex h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
 
         {/* Navigation List */}
-        <div className="space-y-3">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1 md:col-span-2 lg:col-span-3">
             Manage Terminal
           </p>
           {[

@@ -113,29 +113,10 @@ export default function ReportsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 font-sans text-slate-900 dark:text-zinc-50 overflow-x-hidden p-6 print:p-0 print:bg-white print:text-black">
-      <div className="mx-auto max-w-lg print:max-w-none">
+      <div className="max-w-7xl px-8 py-10 print:max-w-none">
         {/* Header - Hidden in Print */}
         <header className="mb-8 flex flex-col gap-6 print:hidden">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link
-                href="/"
-                className="flex h-10 w-10 items-center justify-center rounded-xl bg-white border border-slate-100 text-slate-400 hover:bg-slate-50 transition-all shadow-sm active:scale-95 dark:bg-slate-900 dark:border-slate-800"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </Link>
-              <div>
-                <h1 className="text-xl font-black tracking-tight">
-                  Business <span className="text-indigo-600">Analytics</span>
-                </h1>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                  Daily Performance
-                </p>
-              </div>
-            </div>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20">
-              <BarChart3 className="h-5 w-5" />
-            </div>
           </div>
 
           <div className="flex flex-col gap-3">
@@ -217,8 +198,7 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* Grid Stats */}
-            <div className="grid grid-cols-2 gap-4 print:grid-cols-2">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 print:grid-cols-4">
               <div className="bento-card p-5 border-none shadow-sm dark:bg-slate-900 print:border print:border-slate-100 flex flex-col justify-between">
                 <div>
                   <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-900/20 mb-3">
